@@ -1,0 +1,38 @@
+{
+    "name": "xstore",
+    "version": "2.0.0",
+    "description": "QuickShare P2P - Peer-to-peer file transfer for printing shops (No backend required)",
+    "private": true,
+    "scripts": {
+        "install:all": "npm run install:desktop && npm run install:mobile",
+        "install:desktop": "cd desktop-client && npm install",
+        "install:mobile": "cd mobile-app && npm install",
+        "start:desktop": "cd desktop-client && npm start",
+        "start:mobile": "cd mobile-app && npm start",
+        "start:mobile:android": "cd mobile-app && npm run android",
+        "start:mobile:ios": "cd mobile-app && npm run ios",
+        "dev": "concurrently \"npm run start:desktop\" \"npm run start:mobile\"",
+        "build:desktop": "cd desktop-client && npm run build",
+        "build:desktop:win": "cd desktop-client && npm run build:win",
+        "build:desktop:mac": "cd desktop-client && npm run build:mac",
+        "build:desktop:linux": "cd desktop-client && npm run build:linux",
+        "setup": "npm run install:all",
+        "clean": "npm run clean:desktop && npm run clean:mobile",
+        "clean:desktop": "cd desktop-client && rmdir /s /q node_modules",
+        "clean:mobile": "cd mobile-app && rmdir /s /q node_modules"
+    },
+    "devDependencies": {
+        "concurrently": "^8.2.2"
+    },
+    "keywords": [
+        "file-transfer",
+        "p2p",
+        "peer-to-peer",
+        "quickshare",
+        "printing-shop",
+        "electron",
+        "expo"
+    ],
+    "author": "",
+    "license": "ISC"
+}

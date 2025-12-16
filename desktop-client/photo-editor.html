@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Editor - XStore</title>
+    <link rel="stylesheet" href="photo-editor-styles.css">
+    <link rel="stylesheet" href="photo-editor-ps70.css">
+</head>
+
+<body>
+    <div class="editor-container">
+        <!-- Header -->
+        <header class="editor-header">
+            <div class="header-left">
+                <button class="btn-icon" onclick="closeEditor()" title="Close Editor">
+                    <span>←</span>
+                </button>
+                <h1>📸 Photo Editor</h1>
+            </div>
+            <div class="header-center">
+                <span id="imageName">Untitled</span>
+                <span id="imageDimensions" class="dimensions"></span>
+            </div>
+            <div class="header-right">
+                <button class="btn-icon" onclick="togglePS70Layout()" title="Toggle PS7.0 Layout" id="ps70ToggleBtn">
+                    <span>🎨 PS7.0</span>
+                </button>
+                <button class="btn-icon" onclick="undo()" title="Undo (Ctrl+Z)">
+                    <span>↶</span>
+                </button>
+                <button class="btn-icon" onclick="redo()" title="Redo (Ctrl+Y)">
+                    <span>↷</span>
+                </button>
+                <button class="btn-primary" onclick="saveImage()">
+                    💾 Save
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="editor-main">
+            <!-- Toolbar -->
+            <aside class="toolbar">
+                <div class="tool-section">
+                    <h3>🔧 Transform</h3>
+                    <button class="tool-btn" onclick="showPanel('resize')">
+                        <span class="tool-icon">📏</span>
+                        <span>Resize</span>
+                    </button>
+                    <button class="tool-btn" onclick="showPanel('crop')">
+                        <span class="tool-icon">✂️</span>
+                        <span>Crop</span>
+                    </button>
+                    <button class="tool-btn" onclick="rotateImage(90)">
+                        <span class="tool-icon">🔄</span>
+                        <span>Rotate 90°</span>
+                    </button>
+                    <button class="tool-btn" onclick="flipHorizontal()">
+                        <span class="tool-icon">↔️</span>
+                        <span>Flip H</span>
+                    </button>
+                    <button class="tool-btn" onclick="flipVertical()">
+                        <span class="tool-icon">↕️</span>
+                        <span>Flip V</span>
+                    </button>
+                </div>
+
+                <div class="tool-section">
+                    <h3>🎯 Selection</h3>
+                    <button class="tool-btn" id="rectangleSelectBtn" onclick="activateSelectionTool('rectangle')">
+                        <span class="tool-icon">⬜</span>
+                        <span>Rectangle</span>
+                    </button>
+                    <button class="tool-btn" id="ellipseSelectBtn" onclick="activateSelectionTool('ellipse')">
+                        <span class="tool-icon">⭕</span>
+                        <span>Ellipse</span>
+                    </button>
+                    <button class="tool-btn" id="lassoSelectBtn" onclick="activateSelectionTool('lasso')">
+                        <span class="tool-icon">✏️</span>
+                        <span>Lasso</span>
+                    </button>
+                    <button class="tool-btn" id="wandSelectBtn" onclick="activateSelectionTool('wand')">
+                        <span class="tool-icon">🪄</span>
+                        <span>Magic Wand</span>
+                    </button>
+                    <button class="tool-btn" onclick="selectAllImage()">
+                        <span class="tool-icon">🔲</span>
+                        <span>Select All</span>
+                    </button>
+                    <button class="tool-btn" onclick="deselectAll()">
+                        <span class="tool-icon">❌</span>
+                        <span>Deselect</span>
+                    </button>
+                    <button class="tool-btn" onclick="showPanel('selectionOps')">
+                        <span class="tool-icon">⚙️</span>
+                        <span>Modify</span>
+                    </button>
+                </div>
+
+                <div class="tool-section">
+                    <h3>🎨 Adjustments</h3>
+                    <button class="tool-btn" onclick="showPanel('brightness')">
+                        <span class="tool-icon">☀️</span>
+                        <span>Brightness</span>
+                    </button>
+                    <button class="tool-btn" onclick="showPanel('contrast')">
+                        <span class="tool-icon">◐</span>
+                        <span>Contrast</span>
+                    </button>
+                    <button class="tool-btn" onclick="showPanel('saturation')">
+                        <span class="tool-icon">🌈</span>
+                        <span>Saturation</span>
+                    </button>
+                </div>
+
+                <div class="tool-section">
+                    <h3>✨ Filters</h3>
+                    <button class="tool-btn" onclick="applyFilter('grayscale')">
+                        <span class="tool-icon">⚫</span>
+                        <span>Grayscale</span>
+                    </button>
+                    <button class="tool-btn" onclick="applyFilter('sepia')">
+                        <span class="tool-icon">🟤</span>
+                        <span>Sepia</span>
+                    </button>
+                    <button class="tool-btn" onclick="applyFilter('invert')">
+                        <span class="tool-icon">🔄</span>
+                        <span>Invert</span>
+                    </button>
+                    <button class="tool-btn" onclick="showPanel('blur')">
+                        <span class="tool-icon">💫</span>
+                        <span>Blur</span>
+                    </button>
+                    <button class="tool-btn" onclick="applyFilter('sharpen')">
+                        <span class="tool-icon">🔪</span>
+                        <span>Sharpen</span>
+                    </button>
+                    <button class="tool-btn" onclick="applyFilter('edge')">
+                        <span class="tool-icon">📐</span>
+                        <span>Edge Detect</span>
+                    </button>
+                    <button class="tool-btn" onclick="applyFilter('emboss')">
+                        <span class="tool-icon">🗿</span>
+                        <span>Emboss</span>
+                    </button>
+                </div>
+
+                <div class="tool-section">
+                    <h3>📝 Add</h3>
+                    <button class="tool-btn" onclick="showPanel('text')">
+                        <span class="tool-icon">T</span>
+                        <span>Text</span>
+                    </button>
+                    <button class="tool-btn" onclick="showPanel('shapes')">
+                        <span class="tool-icon">⬜</span>
+                        <span>Shapes</span>
+                    </button>
+                </div>
+
+                <div class="tool-section">
+                    <button class="tool-btn danger" onclick="resetImage()">
+                        <span class="tool-icon">🔄</span>
+                        <span>Reset</span>
+                    </button>
+                </div>
+
+                <div class="tool-section">
+                    <h3>🎭 Layers</h3>
+                    <button class="tool-btn" onclick="addNewLayer()">
+                        <span class="tool-icon">➕</span>
+                        <span>New Layer</span>
+                    </button>
+                    <button class="tool-btn" onclick="duplicateCurrentLayer()">
+                        <span class="tool-icon">📋</span>
+                        <span>Duplicate</span>
+                    </button>
+                    <button class="tool-btn" onclick="deleteCurrentLayer()">
+                        <span class="tool-icon">🗑️</span>
+                        <span>Delete</span>
+                    </button>
+                    <button class="tool-btn" onclick="mergeCurrentLayer()">
+                        <span class="tool-icon">⬇️</span>
+                        <span>Merge Down</span>
+                    </button>
+                    <button class="tool-btn" onclick="flattenAllLayers()">
+                        <span class="tool-icon">📄</span>
+                        <span>Flatten</span>
+                    </button>
+                    <button class="tool-btn" onclick="toggleLayersPanel()">
+                        <span class="tool-icon">📚</span>
+                        <span>Layers Panel</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Canvas Area -->
+            <div class="canvas-area">
+                <div class="canvas-wrapper">
+                    <canvas id="editorCanvas"></canvas>
+                </div>
+                <div class="canvas-info">
+                    <span id="zoomLevel">100%</span>
+                    <button class="btn-icon" onclick="zoomIn()">+</button>
+                    <button class="btn-icon" onclick="zoomOut()">-</button>
+                    <button class="btn-icon" onclick="zoomFit()">Fit</button>
+                </div>
+            </div>
+
+            <!-- Properties Panel -->
+            <aside class="properties-panel" id="propertiesPanel">
+                <!-- Resize Panel -->
+                <div class="panel" id="resizePanel" style="display: none;">
+                    <h3>📏 Resize Image</h3>
+                    <div class="form-group">
+                        <label>Width (px)</label>
+                        <input type="number" id="resizeWidth" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Height (px)</label>
+                        <input type="number" id="resizeHeight" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="maintainAspect" checked>
+                            Maintain aspect ratio
+                        </label>
+                    </div>
+                    <button class="btn-primary" onclick="applyResize()">Apply</button>
+                </div>
+
+                <!-- Crop Panel -->
+                <div class="panel" id="cropPanel" style="display: none;">
+                    <h3>✂️ Crop Image</h3>
+                    <div class="form-group">
+                        <label>X</label>
+                        <input type="number" id="cropX" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Y</label>
+                        <input type="number" id="cropY" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Width</label>
+                        <input type="number" id="cropWidth" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Height</label>
+                        <input type="number" id="cropHeight" min="1">
+                    </div>
+                    <button class="btn-primary" onclick="applyCrop()">Apply</button>
+                </div>
+
+                <!-- Brightness Panel -->
+                <div class="panel" id="brightnessPanel" style="display: none;">
+                    <h3>☀️ Brightness</h3>
+                    <div class="form-group">
+                        <label>Amount: <span id="brightnessValue">0</span></label>
+                        <input type="range" id="brightnessSlider" min="-100" max="100" value="0"
+                            oninput="updateSliderValue('brightness', this.value)">
+                    </div>
+                    <button class="btn-primary" onclick="applyBrightness()">Apply</button>
+                </div>
+
+                <!-- Contrast Panel -->
+                <div class="panel" id="contrastPanel" style="display: none;">
+                    <h3>◐ Contrast</h3>
+                    <div class="form-group">
+                        <label>Amount: <span id="contrastValue">0</span></label>
+                        <input type="range" id="contrastSlider" min="-100" max="100" value="0"
+                            oninput="updateSliderValue('contrast', this.value)">
+                    </div>
+                    <button class="btn-primary" onclick="applyContrast()">Apply</button>
+                </div>
+
+                <!-- Saturation Panel -->
+                <div class="panel" id="saturationPanel" style="display: none;">
+                    <h3>🌈 Saturation</h3>
+                    <div class="form-group">
+                        <label>Amount: <span id="saturationValue">1.0</span></label>
+                        <input type="range" id="saturationSlider" min="0" max="2" step="0.1" value="1"
+                            oninput="updateSliderValue('saturation', this.value)">
+                    </div>
+                    <button class="btn-primary" onclick="applySaturation()">Apply</button>
+                </div>
+
+                <!-- Blur Panel -->
+                <div class="panel" id="blurPanel" style="display: none;">
+                    <h3>💫 Blur</h3>
+                    <div class="form-group">
+                        <label>Radius: <span id="blurValue">5</span></label>
+                        <input type="range" id="blurSlider" min="1" max="20" value="5"
+                            oninput="updateSliderValue('blur', this.value)">
+                    </div>
+                    <button class="btn-primary" onclick="applyBlur()">Apply</button>
+                </div>
+
+                <!-- Text Panel -->
+                <div class="panel" id="textPanel" style="display: none;">
+                    <h3>📝 Add Text</h3>
+                    <div class="form-group">
+                        <label>Text</label>
+                        <input type="text" id="textInput" placeholder="Enter text">
+                    </div>
+                    <div class="form-group">
+                        <label>Font Size</label>
+                        <input type="number" id="fontSize" value="30" min="10" max="200">
+                    </div>
+                    <div class="form-group">
+                        <label>Color</label>
+                        <input type="color" id="textColor" value="#000000">
+                    </div>
+                    <div class="form-group">
+                        <label>X Position</label>
+                        <input type="number" id="textX" value="50" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Y Position</label>
+                        <input type="number" id="textY" value="50" min="0">
+                    </div>
+                    <button class="btn-primary" onclick="applyText()">Add Text</button>
+                </div>
+
+                <!-- Shapes Panel -->
+                <div class="panel" id="shapesPanel" style="display: none;">
+                    <h3>⬜ Add Shape</h3>
+                    <div class="form-group">
+                        <label>Shape Type</label>
+                        <select id="shapeType">
+                            <option value="rectangle">Rectangle</option>
+                            <option value="circle">Circle</option>
+                            <option value="ellipse">Ellipse</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>X Position</label>
+                        <input type="number" id="shapeX" value="50" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Y Position</label>
+                        <input type="number" id="shapeY" value="50" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Width</label>
+                        <input type="number" id="shapeWidth" value="100" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Height</label>
+                        <input type="number" id="shapeHeight" value="100" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Fill Color</label>
+                        <input type="color" id="shapeFillColor" value="#ff0000">
+                    </div>
+                    <div class="form-group">
+                        <label>Stroke Color</label>
+                        <input type="color" id="shapeStrokeColor" value="#000000">
+                    </div>
+                    <div class="form-group">
+                        <label>Line Width</label>
+                        <input type="number" id="shapeLineWidth" value="2" min="0" max="20">
+                    </div>
+                    <button class="btn-primary" onclick="applyShape()">Add Shape</button>
+                </div>
+
+                <!-- Selection Operations Panel -->
+                <div class="panel" id="selectionOpsPanel" style="display: none;">
+                    <h3>⚙️ Selection Operations</h3>
+                    <div class="form-group">
+                        <label>Feather (px)</label>
+                        <input type="number" id="featherRadius" value="5" min="0" max="50">
+                        <button class="btn-primary" onclick="applyFeather()">Apply Feather</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Grow (px)</label>
+                        <input type="number" id="growPixels" value="5" min="1" max="50">
+                        <button class="btn-primary" onclick="applyGrow()">Grow</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Shrink (px)</label>
+                        <input type="number" id="shrinkPixels" value="5" min="1" max="50">
+                        <button class="btn-primary" onclick="applyShrink()">Shrink</button>
+                    </div>
+                    <div class="form-group">
+                        <button class="btn-primary" onclick="invertSelectionOp()">Invert Selection</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Tolerance (Magic Wand)</label>
+                        <input type="number" id="wandTolerance" value="32" min="0" max="255">
+                    </div>
+                    <div class="form-group">
+                        <label>Fill Color</label>
+                        <input type="color" id="fillColor" value="#ff0000">
+                        <button class="btn-primary" onclick="fillSelectedArea()">Fill</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Stroke Color</label>
+                        <input type="color" id="strokeColor" value="#000000">
+                        <label>Stroke Width</label>
+                        <input type="number" id="strokeWidth" value="2" min="1" max="20">
+                        <button class="btn-primary" onclick="strokeSelectedArea()">Stroke</button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Layers Panel -->
+            <aside class="layers-panel" id="layersPanel" style="display: none;">
+                <div class="layers-header">
+                    <h3>🎭 Layers</h3>
+                    <button class="btn-icon" onclick="toggleLayersPanel()">✕</button>
+                </div>
+
+                <div class="layers-controls">
+                    <button class="btn-icon" title="New Layer" onclick="addNewLayer()">➕</button>
+                    <button class="btn-icon" title="Duplicate Layer" onclick="duplicateCurrentLayer()">📋</button>
+                    <button class="btn-icon" title="Delete Layer" onclick="deleteCurrentLayer()">🗑️</button>
+                    <button class="btn-icon" title="Merge Down" onclick="mergeCurrentLayer()">⬇️</button>
+                </div>
+
+                <div class="blend-mode-control">
+                    <label>Blend Mode:</label>
+                    <select id="layerBlendMode" onchange="changeLayerBlendMode()">
+                        <option value="normal">Normal</option>
+                        <option value="multiply">Multiply</option>
+                        <option value="screen">Screen</option>
+                        <option value="overlay">Overlay</option>
+                        <option value="darken">Darken</option>
+                        <option value="lighten">Lighten</option>
+                        <option value="color-dodge">Color Dodge</option>
+                        <option value="color-burn">Color Burn</option>
+                        <option value="hard-light">Hard Light</option>
+                        <option value="soft-light">Soft Light</option>
+                        <option value="difference">Difference</option>
+                        <option value="exclusion">Exclusion</option>
+                        <option value="hue">Hue</option>
+                        <option value="saturation">Saturation</option>
+                        <option value="color">Color</option>
+                        <option value="luminosity">Luminosity</option>
+                    </select>
+                </div>
+
+                <div class="opacity-control">
+                    <label>Opacity: <span id="layerOpacityValue">100</span>%</label>
+                    <input type="range" id="layerOpacity" min="0" max="100" value="100"
+                        oninput="changeLayerOpacity(this.value)">
+                </div>
+
+                <div class="layers-list" id="layersList">
+                    <!-- Layers will be dynamically added here -->
+                </div>
+            </aside>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+    </div>
+
+    <script src="photo-editor-renderer.js"></script>
+</body>
+
+</html>
