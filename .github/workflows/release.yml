@@ -6,6 +6,10 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+  id-token: write
+
 jobs:
   release-desktop:
     name: Build Electron EXE
@@ -65,9 +69,7 @@ jobs:
       - name: Build APK (EASY)
         working-directory: ./mobile-app
         run: |
-          # Note: This requires EXPO_TOKEN and a configured project on Expo.dev
-          # If not using EAS, we would need to run 'npx expo prebuild' and build with Gradle manually.
-          npx eas build -p android --profile production --local --non-interactive --output=release.apk
+          eas build -p android --profile production --non-interactive --output=release.apk
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
