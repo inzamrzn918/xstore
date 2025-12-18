@@ -55,6 +55,12 @@ jobs:
           cache: 'npm'
           cache-dependency-path: mobile-app/package-lock.json
 
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Install dependencies
         working-directory: ./mobile-app
         run: npm install
@@ -66,10 +72,10 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Build APK (EASY)
+      - name: Build APK (Local)
         working-directory: ./mobile-app
         run: |
-          eas build -p android --profile production --non-interactive --output=release.apk
+          eas build -p android --profile production --local --non-interactive --output=release.apk
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
