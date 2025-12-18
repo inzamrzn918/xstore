@@ -74,7 +74,7 @@ jobs:
 
       - name: Prebuild Android
         working-directory: ./mobile-app
-        run: npx expo prebuild --platform android --no-interactive
+        run: npx expo prebuild --platform android
 
       - name: Build APK with Gradle
         working-directory: ./mobile-app/android
