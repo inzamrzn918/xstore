@@ -1,7 +1,12 @@
 {
   "name": "desktop-client",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.1.0",
+  "description": "Secure P2P file sharing desktop client for XStore.",
+  "author": "inzamrzn918",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/inzamrzn918/xstore.git"
+  },
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -27,7 +32,14 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "runAfterFinish": true
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "inzamrzn918",
+        "repo": "xstore"
+      }
+    ]
   },
   "dependencies": {
     "axios": "^1.13.2",
