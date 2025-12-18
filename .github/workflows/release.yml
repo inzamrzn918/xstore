@@ -72,16 +72,19 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Build APK (Local)
+      - name: Prebuild Android
         working-directory: ./mobile-app
-        run: |
-          eas build -p android --profile production --local --non-interactive --output=release.apk
+        run: npx expo prebuild --platform android --no-interactive
+
+      - name: Build APK with Gradle
+        working-directory: ./mobile-app/android
+        run: ./gradlew assembleRelease
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: mobile-app/release.apk
+          path: mobile-app/android/app/build/outputs/apk/release/app-release.apk
 
   publish:
     name: Create GitHub Release
@@ -92,17 +95,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: windows-exe
+          path: .
 
       - name: Download Android APK
         uses: actions/download-artifact@v4
         with:
           name: android-apk
+          path: .
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             *.exe
-            *.apk
+            app-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
