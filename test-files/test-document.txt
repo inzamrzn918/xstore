@@ -1,0 +1,30 @@
+# Test Document for PrintShare
+
+## Purpose
+This is a test PDF document for testing the PrintShare file transfer system.
+
+## Test Information
+- **File Type:** PDF
+- **Purpose:** Testing document file transfer
+- **Size:** Small (~1KB)
+- **Date:** 2025-12-17
+
+## Test Scenarios
+1. Single file upload
+2. Multiple file upload
+3. File preview on desktop
+4. File opening in default application
+
+## Expected Results
+- File should transfer successfully from mobile to desktop
+- File should appear in the incoming files list
+- File should be previewable
+- File should open in default PDF viewer
+
+## Notes
+This is a simple text-based PDF for testing purposes.
+
+---
+
+**PrintShare Testing Suite**  
+*Making printing as easy as UPI payments*

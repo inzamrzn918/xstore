@@ -34,5 +34,8 @@
         "expo"
     ],
     "author": "",
-    "license": "ISC"
+    "license": "ISC",
+    "dependencies": {
+        "form-data": "^4.0.5"
+    }
 }
