@@ -1,5 +1,7 @@
 const http = require('http');
 const Busboy = require('busboy');
+const fs = require('fs');
+const path = require('path');
 
 /**
  * HTTP Server Service - Handles incoming connections and file uploads
@@ -56,6 +58,8 @@ class HTTPServerService {
             this.handleInfo(req, res);
         } else if (req.method === 'GET' && req.url === '/ping') {
             this.handlePing(req, res);
+        } else if (req.method === 'GET' && req.url.startsWith('/web')) {
+            this.handleWebClient(req, res);
         } else if (req.method === 'POST' && req.url.startsWith('/upload')) {
             this.handleUpload(req, res);
         } else if (req.method === 'POST' && req.url === '/session/start') {
@@ -125,6 +129,67 @@ class HTTPServerService {
         } else {
             res.writeHead(501);
             res.end('Session end handler not implemented');
+        }
+    }
+
+    handleWebClient(req, res) {
+        try {
+            let filePath;
+
+            // Parse URL
+            if (req.url === '/web' || req.url.startsWith('/web?')) {
+                // Serve index.html
+                filePath = path.join(__dirname, '../../web-client/index.html');
+            } else if (req.url.startsWith('/web/assets/')) {
+                // Serve static assets
+                const assetPath = req.url.replace('/web/assets/', '');
+                filePath = path.join(__dirname, '../../web-client', assetPath);
+            } else {
+                res.writeHead(404);
+                res.end('Not found');
+                return;
+            }
+
+            // Check if file exists
+            if (!fs.existsSync(filePath)) {
+                res.writeHead(404);
+                res.end('File not found');
+                return;
+            }
+
+            // Determine content type
+            const ext = path.extname(filePath).toLowerCase();
+            const contentTypes = {
+                '.html': 'text/html',
+                '.css': 'text/css',
+                '.js': 'application/javascript',
+                '.json': 'application/json',
+                '.png': 'image/png',
+                '.jpg': 'image/jpeg',
+                '.jpeg': 'image/jpeg',
+                '.gif': 'image/gif',
+                '.svg': 'image/svg+xml',
+                '.ico': 'image/x-icon'
+            };
+
+            const contentType = contentTypes[ext] || 'application/octet-stream';
+
+            // Read and serve file
+            fs.readFile(filePath, (err, data) => {
+                if (err) {
+                    res.writeHead(500);
+                    res.end('Error reading file');
+                    return;
+                }
+
+                res.writeHead(200, { 'Content-Type': contentType });
+                res.end(data);
+            });
+
+        } catch (error) {
+            console.error('Web client error:', error);
+            res.writeHead(500);
+            res.end('Internal server error');
         }
     }
 

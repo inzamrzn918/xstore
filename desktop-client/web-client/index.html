@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PrintShare - Send Files</title>
+    <link rel="stylesheet" href="/web/assets/styles.css">
+</head>
+
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-spinner"></div>
+        <p>Connecting to shop...</p>
+    </div>
+
+    <!-- Main App -->
+    <div id="app" class="app" style="display: none;">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">🖨️</span>
+                    <span class="logo-text">PrintShare</span>
+                </div>
+                <div id="connectionStatus" class="status-badge status-connecting">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Connecting...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Shop Info Card -->
+        <div class="container">
+            <div id="shopInfo" class="shop-info-card">
+                <div class="shop-icon">🏪</div>
+                <h1 id="shopName" class="shop-name">Loading...</h1>
+                <p id="shopLocation" class="shop-location"></p>
+                <div class="shop-meta">
+                    <span id="shopId" class="shop-id"></span>
+                </div>
+            </div>
+
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <h2 class="section-title">Send Files to Print</h2>
+
+                <!-- File Drop Zone -->
+                <div id="dropZone" class="drop-zone">
+                    <div class="drop-zone-content">
+                        <div class="drop-zone-icon">📁</div>
+                        <p class="drop-zone-text">Drag & drop files here</p>
+                        <p class="drop-zone-subtext">or</p>
+                        <label for="fileInput" class="btn btn-primary" onclick="event.stopPropagation()">
+                            <span>📂 Choose Files</span>
+                        </label>
+                        <input type="file" id="fileInput" multiple
+                            accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.zip,.rar" style="display: none;">
+                        <p class="drop-zone-hint">Supports: Images, PDF, Documents</p>
+                    </div>
+                </div>
+
+                <!-- Camera Capture -->
+                <div class="camera-section">
+                    <button id="cameraBtn" class="btn btn-secondary">
+                        <span>📷 Take Photo</span>
+                    </button>
+                </div>
+
+                <!-- Selected Files List -->
+                <div id="filesList" class="files-list" style="display: none;">
+                    <div class="files-list-header">
+                        <h3>Selected Files (<span id="fileCount">0</span>)</h3>
+                        <button id="clearFilesBtn" class="btn-text">Clear All</button>
+                    </div>
+                    <div id="filesContainer" class="files-container"></div>
+                </div>
+
+                <!-- Upload Button -->
+                <div id="uploadBtnContainer" class="upload-btn-container" style="display: none;">
+                    <button id="uploadBtn" class="btn btn-upload">
+                        <span id="uploadBtnText">Send to Shop</span>
+                    </button>
+                </div>
+
+                <!-- Progress Section -->
+                <div id="progressSection" class="progress-section" style="display: none;">
+                    <div class="progress-info">
+                        <span id="progressText">Uploading...</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill"></div>
+                    </div>
+                    <p id="progressDetails" class="progress-details"></p>
+                </div>
+            </div>
+
+            <!-- Success Message -->
+            <div id="successMessage" class="message-card success-card" style="display: none;">
+                <div class="message-icon">✅</div>
+                <h3>Files Sent Successfully!</h3>
+                <p>Your files have been received by the print shop.</p>
+                <button id="sendMoreBtn" class="btn btn-primary">Send More Files</button>
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorMessage" class="message-card error-card" style="display: none;">
+                <div class="message-icon">❌</div>
+                <h3 id="errorTitle">Upload Failed</h3>
+                <p id="errorText">Please try again.</p>
+                <button id="retryBtn" class="btn btn-primary">Try Again</button>
+            </div>
+        </div>
+
+        <!-- Camera Modal -->
+        <div id="cameraModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Take Photo</h3>
+                    <button id="closeCameraBtn" class="btn-close">×</button>
+                </div>
+                <div class="camera-container">
+                    <video id="cameraVideo" class="camera-video" autoplay playsinline></video>
+                    <canvas id="cameraCanvas" style="display: none;"></canvas>
+                </div>
+                <div class="camera-controls">
+                    <button id="captureBtn" class="btn btn-primary">
+                        <span>📸 Capture</span>
+                    </button>
+                    <button id="switchCameraBtn" class="btn btn-secondary" style="display: none;">
+                        <span>🔄 Switch Camera</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>PrintShare Web Client • No installation required</p>
+        </footer>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="/web/assets/app.js"></script>
+</body>
+
+</html>

@@ -16,6 +16,18 @@ let shopConfig = {
     port: 8888
 };
 
+let shopSettings = {
+    webClient: true,
+    mobileApp: true,
+    maxFileSize: 100,
+    autoDeleteHours: 0,
+    soundNotifications: true,
+    desktopNotifications: false,
+    requireSession: true,
+    sessionTimeout: 5,
+    blockedIPs: []
+};
+
 // State
 let httpServer = null;
 let receivedFiles = [];
@@ -23,6 +35,8 @@ let currentPreviewFile = null;
 let activeSessions = new Map(); // customerID -> { sessionKey, lastSeen, files: [] }
 let memoryStorage = new Map(); // fileId -> Buffer (for files < 20MB)
 let chunkIndex = new Map(); // fileId -> { chunks: [], totalChunks, originalSize }
+let selectedClientId = null;
+let clientFiles = new Map(); // clientId -> file[]
 
 // Constants
 const MEMORY_THRESHOLD = 20 * 1024 * 1024; // 20MB
@@ -31,7 +45,9 @@ const CHUNK_COUNT = 100;
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     console.log('PrintShare Shop initialized');
+    loadSettings(); // Load settings first
     loadShopConfig();
+    loadReceivedFiles(); // Ensure files are loaded
 
     // Clean up inactive sessions every 10 seconds
     setInterval(cleanupInactiveSessions, 10000);
@@ -40,13 +56,14 @@ document.addEventListener('DOMContentLoaded', () => {
 // Session cleanup
 function cleanupInactiveSessions() {
     const now = Date.now();
-    const timeout = 30000; // 30 seconds
+    const timeoutMinutes = shopSettings.sessionTimeout || 5;
+    const timeout = timeoutMinutes * 60 * 1000;
 
     for (const [customerID, session] of activeSessions.entries()) {
         if (now - session.lastSeen > timeout) {
             console.log(`Session timeout for ${customerID}`);
             activeSessions.delete(customerID);
-            updateFilesList(); // Update UI to show files as locked
+            updateFilesList(); // Update UI
             updateStatus('Ready to Receive', '#10b981');
         }
     }
@@ -147,18 +164,15 @@ function showSetup() {
 
 // Show main screen
 function showMainScreen() {
-    document.getElementById('setupScreen').style.display = 'none';
-    document.getElementById('mainScreen').style.display = 'grid';
+    if (document.getElementById('setupScreen')) document.getElementById('setupScreen').style.display = 'none';
+    if (document.getElementById('mainScreen')) document.getElementById('mainScreen').style.display = 'grid';
 
     // Update header
-    document.getElementById('shopName').textContent = shopConfig.shopName;
+    if (document.getElementById('shopName')) {
+        document.getElementById('shopName').textContent = shopConfig.shopName;
+    }
 
-    // Display shop info
-    document.getElementById('displayShopName').textContent = shopConfig.shopName;
-    document.getElementById('displayShopIP').textContent = shopConfig.ip + ':' + shopConfig.port;
-    document.getElementById('displayShopID').textContent = shopConfig.shopID;
-
-    // Generate QR code
+    // Generate QR code (now only in settings, but we call it to be ready)
     generateShopQR();
 
     // Start HTTP server
@@ -166,42 +180,30 @@ function showMainScreen() {
 
     // Load received files
     loadReceivedFiles();
+
+    // Initial UI render
+    updateClientsListUI();
 }
 
-// Generate shop QR code (static, like UPI)
+// Generate shop QR code
 function generateShopQR() {
-    // Create connection data
-    const connectionData = {
-        type: 'printshare',
-        version: '1.0',
-        shopName: shopConfig.shopName,
-        shopID: shopConfig.shopID,
-        ip: shopConfig.ip,
-        port: shopConfig.port,
-        location: shopConfig.location,
-        encryption: true,
-        timestamp: Date.now()
-    };
+    const webUrl = `http://${shopConfig.ip}:${shopConfig.port}/web?shop=${shopConfig.shopID}`;
 
-    // Encode as base64 for custom URL scheme
-    const dataString = JSON.stringify(connectionData);
-    const base64Data = Buffer.from(dataString).toString('base64');
+    // In new UI, QR is only in settings modal
+    const canvas = document.getElementById('settingsQRCode');
+    if (canvas) {
+        QRCode.toCanvas(canvas, webUrl, {
+            width: 220,
+            margin: 2,
+            color: { dark: '#000000', light: '#FFFFFF' }
+        }, (error) => {
+            if (error) console.error('QR generation error:', error);
+            else console.log('Settings QR code generated');
+        });
+    }
 
-    // Use custom URL scheme: xstore://connect?data=<base64>
-    const qrData = `xstore://connect?data=${base64Data}`;
-
-    const canvas = document.getElementById('shopQRCode');
-    QRCode.toCanvas(canvas, qrData, {
-        width: 220,
-        margin: 2,
-        color: {
-            dark: '#000000',
-            light: '#FFFFFF'
-        }
-    }, (error) => {
-        if (error) console.error('QR generation error:', error);
-        else console.log('Shop QR code generated with custom URL scheme');
-    });
+    // Update URL displays
+    updateWebClientURL(webUrl);
 }
 
 // Start HTTP server to receive files
@@ -211,6 +213,16 @@ function startHTTPServer() {
     }
 
     httpServer = http.createServer((req, res) => {
+        const clientIP = req.socket.remoteAddress;
+
+        // Check if IP is blocked
+        if (shopSettings.blockedIPs && shopSettings.blockedIPs.includes(clientIP)) {
+            console.log(`Blocked request from ${clientIP}`);
+            res.writeHead(403, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Your access has been blocked' }));
+            return;
+        }
+
         // CORS headers
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -269,6 +281,64 @@ function startHTTPServer() {
         // Decrypt file - only works if session active
         if (req.method === 'POST' && req.url.startsWith('/decrypt/')) {
             handleDecrypt(req, res);
+            return;
+        }
+
+        // Web client routes
+        if (req.method === 'GET' && (req.url === '/web' || req.url.startsWith('/web?'))) {
+            // Serve web client index.html
+            const webClientPath = path.join(__dirname, 'web-client', 'index.html');
+            if (fs.existsSync(webClientPath)) {
+                fs.readFile(webClientPath, (err, data) => {
+                    if (err) {
+                        res.writeHead(500);
+                        res.end('Error loading web client');
+                        return;
+                    }
+                    res.writeHead(200, { 'Content-Type': 'text/html' });
+                    res.end(data);
+                });
+            } else {
+                res.writeHead(404);
+                res.end('Web client not found');
+            }
+            return;
+        }
+
+        // Web client assets (CSS, JS)
+        if (req.method === 'GET' && req.url.startsWith('/web/assets/')) {
+            const assetPath = req.url.replace('/web/assets/', '');
+            const filePath = path.join(__dirname, 'web-client', assetPath);
+
+            if (fs.existsSync(filePath)) {
+                // Determine content type
+                const ext = path.extname(filePath).toLowerCase();
+                const contentTypes = {
+                    '.html': 'text/html',
+                    '.css': 'text/css',
+                    '.js': 'application/javascript',
+                    '.json': 'application/json',
+                    '.png': 'image/png',
+                    '.jpg': 'image/jpeg',
+                    '.jpeg': 'image/jpeg',
+                    '.gif': 'image/gif',
+                    '.svg': 'image/svg+xml'
+                };
+                const contentType = contentTypes[ext] || 'application/octet-stream';
+
+                fs.readFile(filePath, (err, data) => {
+                    if (err) {
+                        res.writeHead(500);
+                        res.end('Error loading asset');
+                        return;
+                    }
+                    res.writeHead(200, { 'Content-Type': contentType });
+                    res.end(data);
+                });
+            } else {
+                res.writeHead(404);
+                res.end('Asset not found');
+            }
             return;
         }
 
@@ -335,6 +405,9 @@ function handleFileUpload(req, res) {
                     customerID
                 );
 
+                // Capture IP
+                const clientIP = req.socket.remoteAddress;
+
                 // Add to received files
                 const fileInfo = {
                     id: timestamp,
@@ -343,12 +416,25 @@ function handleFileUpload(req, res) {
                     path: savePath,
                     timestamp: new Date().toISOString(),
                     from: customerID,
+                    ip: clientIP,
                     encrypted: encrypted,
                     storageType: storageType,
                     inMemory: storageType === 'memory'
                 };
 
                 receivedFiles.unshift(fileInfo);
+
+                // Add to client specific list
+                const session = activeSessions.get(customerID);
+                if (session) {
+                    fileInfo.deviceName = session.deviceName;
+                }
+
+                if (!clientFiles.has(customerID)) {
+                    clientFiles.set(customerID, []);
+                }
+                clientFiles.get(customerID).unshift(fileInfo);
+
                 saveReceivedFiles();
                 updateFilesList();
 
@@ -556,17 +642,23 @@ function handleSessionStart(req, res) {
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
         try {
-            const { customerID, sessionKey } = JSON.parse(body);
+            const { customerID, sessionKey, deviceName } = JSON.parse(body);
+            const clientIP = req.socket.remoteAddress;
 
             activeSessions.set(customerID, {
                 sessionKey,
+                deviceName: deviceName || 'Web Client',
+                ip: clientIP,
                 lastSeen: Date.now(),
                 files: []
             });
 
-            console.log(`Session started for ${customerID}`);
-            updateStatus(`Customer connected: ${customerID.substring(0, 12)}...`, '#10b981');
-            updateFilesList(); // Update UI to show unlocked files
+            console.log(`Session started for ${customerID} (${deviceName})`);
+            updateStatus(`Customer connected: ${deviceName || customerID.substring(0, 12)}`, '#10b981');
+            updateClientsListUI();
+            if (selectedClientId === customerID) {
+                displayClientFiles(customerID);
+            }
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: true, message: 'Session started' }));
@@ -597,7 +689,10 @@ function handleSessionEnd(req, res) {
         const session = activeSessions.get(customerID);
         console.log(`Session ended for ${customerID}`);
         activeSessions.delete(customerID);
-        updateFilesList(); // Update UI to show files as locked
+        updateClientsListUI();
+        if (selectedClientId === customerID) {
+            displayClientFiles(customerID);
+        }
         updateStatus('Ready to Receive', '#10b981');
     }
 
@@ -709,6 +804,16 @@ function loadReceivedFiles() {
 
             updateFilesList();
             updateStats();
+
+            // Group files by client
+            clientFiles.clear();
+            receivedFiles.forEach(file => {
+                if (!clientFiles.has(file.from)) {
+                    clientFiles.set(file.from, []);
+                }
+                clientFiles.get(file.from).push(file);
+            });
+            updateClientsListUI();
         }
     } catch (error) {
         console.error('Error loading files:', error);
@@ -730,70 +835,167 @@ function saveReceivedFiles() {
     }
 }
 
-// Update files list UI
+// Update files list UI (now handled per client)
 function updateFilesList() {
-    const container = document.getElementById('incomingFiles');
-    document.getElementById('fileCount').textContent = `${receivedFiles.length} files`;
+    updateClientsListUI();
+    if (selectedClientId) {
+        displayClientFiles(selectedClientId);
+    }
+}
 
-    if (receivedFiles.length === 0) {
-        container.innerHTML = `
+function updateClientsListUI() {
+    const clientsList = document.getElementById('clientsList');
+    const clientCount = document.getElementById('clientCount');
+    if (!clientsList) return;
+
+    // Only show clients with active sessions
+    const onlineClientIds = Array.from(activeSessions.keys());
+
+    if (clientCount) {
+        const onlineCount = activeSessions.size;
+        clientCount.textContent = `${onlineCount} online`;
+    }
+
+    if (onlineClientIds.length === 0) {
+        clientsList.innerHTML = `
             <div class="empty-state">
-                <div class="empty-icon">📭</div>
-                <p>No files received yet</p>
-                <p class="empty-subtitle">Files will appear here when customers send them</p>
+                <div class="empty-icon">🚫</div>
+                <p>No clients connected</p>
+                <p class="empty-subtitle">Clients will appear when they scan the QR code</p>
             </div>
         `;
         return;
     }
 
-    container.innerHTML = receivedFiles.map(file => {
+    clientsList.innerHTML = onlineClientIds.map(clientId => {
+        const session = activeSessions.get(clientId);
+        const isOnline = !!session;
+        const deviceName = session ? session.deviceName : (clientFiles.get(clientId)?.[0]?.deviceName || 'Unknown Device');
+        const files = clientFiles.get(clientId) || [];
+        const isActive = selectedClientId === clientId;
+
+        return `
+            <div class="client-item ${isActive ? 'active' : ''} ${isOnline ? 'online' : 'offline'}" onclick="selectClient('${clientId}')">
+                <div class="client-avatar">
+                    ${isOnline ? '🟢' : '⚪'}
+                </div>
+                <div class="client-info">
+                    <div class="client-name">${deviceName}</div>
+                    <div class="client-id-mini">${clientId.substring(0, 8)}...</div>
+                </div>
+                ${files.length > 0 ? `<div class="client-badge">${files.length}</div>` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+function selectClient(clientId) {
+    selectedClientId = clientId;
+    updateClientsListUI();
+    displayClientFiles(clientId);
+    updateClientManagementButtons(clientId);
+}
+
+function updateClientManagementButtons(clientId) {
+    const btnDisconnect = document.getElementById('btnDisconnect');
+    const btnBlock = document.getElementById('btnBlock');
+
+    if (!btnDisconnect || !btnBlock) return;
+
+    if (!clientId) {
+        btnDisconnect.disabled = true;
+        btnBlock.disabled = true;
+        btnBlock.innerHTML = '🚫';
+        btnBlock.title = 'Block IP';
+        return;
+    }
+
+    const session = activeSessions.get(clientId);
+    // Try to get IP from session or from files
+    const clientIP = session ? session.ip : (clientFiles.get(clientId)?.[0]?.ip);
+
+    btnDisconnect.disabled = !session;
+
+    if (clientIP) {
+        btnBlock.disabled = false;
+        const isBlocked = shopSettings.blockedIPs && shopSettings.blockedIPs.includes(clientIP);
+
+        if (isBlocked) {
+            btnBlock.innerHTML = '🔓';
+            btnBlock.title = 'Unblock Device';
+            btnBlock.classList.add('btn-success-outline');
+            btnBlock.classList.remove('btn-danger-outline');
+            btnBlock.onclick = (e) => { e.stopPropagation(); unblockIP(clientIP); updateClientManagementButtons(clientId); };
+        } else {
+            btnBlock.innerHTML = '🚫';
+            btnBlock.title = 'Block Device';
+            btnBlock.classList.remove('btn-success-outline');
+            btnBlock.classList.add('btn-danger-outline');
+            btnBlock.onclick = (e) => { e.stopPropagation(); blockSelectedClient(); };
+        }
+    } else {
+        btnBlock.disabled = true;
+        btnBlock.innerHTML = '🚫';
+        btnBlock.title = 'IP unknown';
+    }
+}
+
+function displayClientFiles(clientId) {
+    const container = document.getElementById('filesList');
+    const clientName = document.getElementById('selectedClientName');
+    const clientMeta = document.getElementById('selectedClientMeta');
+    const fileCount = document.getElementById('fileCount');
+
+    if (!container) return;
+
+    const files = clientFiles.get(clientId) || [];
+    const session = activeSessions.get(clientId);
+    const isOnline = !!session;
+    const deviceName = session ? session.deviceName : (files[0]?.deviceName || 'Unknown Device');
+
+    if (clientName) clientName.textContent = deviceName;
+    if (clientMeta) clientMeta.textContent = isOnline ? 'Online • ' + clientId : 'Offline • ' + clientId;
+    if (fileCount) fileCount.textContent = `${files.length} files`;
+
+    if (files.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">📁</div>
+                <p>No files from this client</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = files.map(file => {
         const isLocked = file.encrypted && !activeSessions.has(file.from);
         const isUnavailable = file.unavailable === true;
         const lockIcon = isLocked ? '🔒' : (file.encrypted ? '🔓' : '');
         const unavailableIcon = isUnavailable ? '❌' : '';
         const lockClass = isLocked ? 'file-locked' : (isUnavailable ? 'file-unavailable' : '');
 
-        // Storage indicator
-        const storageIcon = file.storageType === 'memory' ? '💾' :
-            file.storageType === 'chunked' ? '📦' : '';
-        const storageText = file.storageType === 'memory' ? 'In Memory' :
-            file.storageType === 'chunked' ? chunkIndex.get(file.id)?.totalChunks + ' chunks' : '';
+        const isImage = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => file.name.toLowerCase().endsWith(ext));
 
         return `
-        <div class="file-item ${lockClass}" onclick="previewFile('${file.id}')">
-            <div class="file-icon">${unavailableIcon || lockIcon || getFileIcon(file.name)}</div>
-            <div class="file-details">
-                <div class="file-name">${file.name} ${unavailableIcon} ${lockIcon} ${storageIcon}</div>
-                <div class="file-meta">
-                    <span>${formatFileSize(file.size)}</span>
-                    <span>${formatTime(file.timestamp)}</span>
-                    <span>From: ${file.from.substring(0, 15)}...</span>
-                    ${isUnavailable ? '<span style="color: #ef4444;">❌ Unavailable</span>' : ''}
-                    ${isLocked ? '<span style="color: #ef4444;">🔒 Locked</span>' : ''}
-                    ${storageText ? '<span style="color: #6366f1;">' + storageText + '</span>' : ''}
+            <div class="file-item ${lockClass}" onclick="previewFile('${file.id}')">
+                <div class="file-icon">${unavailableIcon || lockIcon || getFileIcon(file.name)}</div>
+                <div class="file-details">
+                    <div class="file-name">${file.name} ${unavailableIcon} ${lockIcon}</div>
+                    <div class="file-meta">
+                        <span>${formatFileSize(file.size)}</span>
+                        <span>${formatTime(file.timestamp)}</span>
+                    </div>
+                </div>
+                <div class="file-actions">
+                    <button class="icon-btn" onclick="event.stopPropagation(); printFile('${file.id}')" title="Print" ${isLocked || isUnavailable ? 'disabled' : ''}>🖨️</button>
+                    <button class="icon-btn" onclick="event.stopPropagation(); saveFile('${file.id}')" title="Save As..." ${isLocked || isUnavailable ? 'disabled' : ''}>💾</button>
+                    <button class="icon-btn" onclick="event.stopPropagation(); openFile('${file.id}')" title="Open" ${isLocked || isUnavailable ? 'disabled' : ''}>📂</button>
+                    ${isImage ? `<button class="icon-btn" onclick="event.stopPropagation(); editFile('${file.id}')" title="Edit Image" ${isLocked || isUnavailable ? 'disabled' : ''}>✏️</button>` : ''}
+                    <button class="icon-btn" onclick="event.stopPropagation(); deleteFile('${file.id}')" title="Delete">🗑️</button>
                 </div>
             </div>
-            <div class="file-actions">
-                <button class="icon-btn" onclick="event.stopPropagation(); printFile('${file.id}')" title="${isUnavailable ? 'File unavailable' : isLocked ? 'Locked - sender must be connected' : 'Print'}" ${isLocked || isUnavailable ? 'disabled' : ''}>
-                    🖨️
-                </button>
-                <button class="icon-btn" onclick="event.stopPropagation(); saveFile('${file.id}')" title="${isUnavailable ? 'File unavailable' : isLocked ? 'Locked - sender must be connected' : 'Save As...'}" ${isLocked || isUnavailable ? 'disabled' : ''}>
-                    💾
-                </button>
-                <button class="icon-btn" onclick="event.stopPropagation(); openFile('${file.id}')" title="${isUnavailable ? 'File unavailable' : isLocked ? 'Locked - sender must be connected' : 'Open'}" ${isLocked || isUnavailable ? 'disabled' : ''}>
-                    📂
-                </button>
-                ${['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => file.name.toLowerCase().endsWith(ext)) ? `
-                <button class="icon-btn" onclick="event.stopPropagation(); editFile('${file.id}')" title="${isUnavailable ? 'File unavailable' : isLocked ? 'Locked - sender must be connected' : 'Edit Image'}" ${isLocked || isUnavailable ? 'disabled' : ''}>
-                    ✏️
-                </button>
-                ` : ''}
-                <button class="icon-btn" onclick="event.stopPropagation(); deleteFile('${file.id}')" title="Delete">
-                    🗑️
-                </button>
-            </div>
-        </div>
-    `}).join('');
+        `;
+    }).join('');
 }
 
 // Preview file
@@ -1183,12 +1385,382 @@ function formatTime(timestamp) {
 }
 
 function updateStatus(text, color = '#10b981') {
-    document.getElementById('statusText').textContent = text;
-    document.querySelector('.status-dot').style.background = color;
+    if (document.getElementById('statusText')) {
+        document.getElementById('statusText').textContent = text;
+    }
+    const dot = document.querySelector('.status-dot');
+    if (dot) {
+        dot.style.background = color;
+    }
 }
 
 function showNotification(message) {
     console.log('Notification:', message);
     updateStatus(message, '#10b981');
     setTimeout(() => updateStatus('Ready to Receive', '#10b981'), 3000);
+}
+
+function updateWebClientURL(url) {
+    // Update web URL display if element exists
+    const webUrlElement = document.getElementById('settingsWebClientURL');
+    if (webUrlElement) {
+        webUrlElement.textContent = url;
+        webUrlElement.href = url;
+    }
+}
+
+function copyWebURL() {
+    const urlElement = document.getElementById('settingsWebClientURL');
+    const copyBtn = document.querySelector('.btn-copy');
+
+    if (!urlElement) return;
+
+    const url = urlElement.textContent;
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(url).then(() => {
+        showNotification('Web URL copied to clipboard!');
+
+        // Visual feedback on button
+        if (copyBtn) {
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = '✅';
+            copyBtn.classList.add('copied');
+
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+                copyBtn.classList.remove('copied');
+            }, 2000);
+        }
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        // Fallback: select the text
+        const range = document.createRange();
+        range.selectNode(urlElement);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        showNotification('Please copy manually');
+    });
+}
+
+function switchTab(tabName, event) {
+    // Hide all tab contents
+    document.querySelectorAll('.settings-tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    // Remove active class from all tabs
+    document.querySelectorAll('.settings-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+
+    const tabMap = {
+        'qr': 'qrTab',
+        'general': 'generalTab',
+        'shop': 'shopTab',
+        'features': 'featuresTab'
+    };
+
+    const tabId = tabMap[tabName];
+    if (tabId && document.getElementById(tabId)) {
+        document.getElementById(tabId).classList.add('active');
+    }
+
+    // Activate clicked tab button
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
+    } else {
+        // Find the button if no event (e.g. called from code)
+        const tabs = document.querySelectorAll('.settings-tab');
+        const tabTexts = { 'qr': 'QR Code', 'shop': 'Shop Details', 'general': 'General', 'features': 'Features' };
+        tabs.forEach(btn => {
+            if (btn.textContent.trim() === tabTexts[tabName]) {
+                btn.classList.add('active');
+            }
+        });
+    }
+
+    // Special handling for QR Tab
+    if (tabName === 'qr') {
+        setTimeout(generateQRInSettings, 100);
+    }
+}
+
+function loadSettings() {
+    try {
+        const configDir = process.env.APPDATA ? path.join(process.env.APPDATA, 'PrintShare') : path.join(os.homedir(), '.printshare');
+        const settingsPath = path.join(configDir, 'settings.json');
+        if (fs.existsSync(settingsPath)) {
+            const savedSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+            shopSettings = { ...shopSettings, ...savedSettings };
+        }
+    } catch (error) {
+        console.error('Error loading settings:', error);
+    }
+}
+
+function saveSettings() {
+    try {
+        const configDir = process.env.APPDATA ? path.join(process.env.APPDATA, 'PrintShare') : path.join(os.homedir(), '.printshare');
+        if (!fs.existsSync(configDir)) {
+            fs.mkdirSync(configDir, { recursive: true });
+        }
+        const settingsPath = path.join(configDir, 'settings.json');
+        fs.writeFileSync(settingsPath, JSON.stringify(shopSettings, null, 2));
+    } catch (error) {
+        console.error('Error saving settings:', error);
+    }
+}
+
+function showSettings() {
+    loadSettings();
+
+    // Fill form values
+    if (document.getElementById('enableWebClient'))
+        document.getElementById('enableWebClient').checked = shopSettings.webClient;
+    if (document.getElementById('maxFileSize'))
+        document.getElementById('maxFileSize').value = shopSettings.maxFileSize;
+    if (document.getElementById('autoDeleteHours'))
+        document.getElementById('autoDeleteHours').value = shopSettings.autoDeleteHours;
+    if (document.getElementById('soundNotifications'))
+        document.getElementById('soundNotifications').checked = shopSettings.soundNotifications;
+    if (document.getElementById('desktopNotifications'))
+        document.getElementById('desktopNotifications').checked = shopSettings.desktopNotifications;
+    if (document.getElementById('sessionTimeout'))
+        document.getElementById('sessionTimeout').value = shopSettings.sessionTimeout || 5;
+
+    // Load blocked IPs list
+    renderBlockedIPs();
+
+    // Fill shop info
+    if (document.getElementById('settingsShopName'))
+        document.getElementById('settingsShopName').value = shopConfig.shopName || '';
+    if (document.getElementById('settingsLocation'))
+        document.getElementById('settingsLocation').value = shopConfig.location || '';
+
+    // Show modal
+    document.getElementById('settingsModal').style.display = 'flex';
+
+    // Update live info in settings
+    setTimeout(() => {
+        generateQRInSettings();
+        if (document.getElementById('settingsDisplayShopName')) {
+            document.getElementById('settingsDisplayShopName').textContent = shopConfig.shopName || '-';
+        }
+        if (document.getElementById('settingsDisplayShopIP')) {
+            document.getElementById('settingsDisplayShopIP').textContent = (shopConfig.ip || '-') + ':' + (shopConfig.port || '');
+        }
+
+        const webURL = document.getElementById('webClientURL');
+        const settingsWebURL = document.getElementById('settingsWebClientURL');
+        if (webURL && settingsWebURL) {
+            settingsWebURL.textContent = webURL.textContent;
+            settingsWebURL.href = webURL.href;
+        }
+    }, 100);
+}
+
+function closeSettings() {
+    document.getElementById('settingsModal').style.display = 'none';
+}
+
+function saveShopDetails() {
+    const newName = document.getElementById('settingsShopName').value.trim();
+    const newLocation = document.getElementById('settingsLocation').value.trim();
+
+    if (!newName) {
+        alert('Shop name is required');
+        return;
+    }
+
+    shopConfig.shopName = newName;
+    shopConfig.location = newLocation;
+
+    // For Electron, we need to save the config
+    const configDir = process.env.APPDATA ? path.join(process.env.APPDATA, 'PrintShare') : path.join(os.homedir(), '.printshare');
+    const configPath = path.join(configDir, 'config.json');
+    try {
+        fs.writeFileSync(configPath, JSON.stringify(shopConfig, null, 2));
+        console.log('Shop details saved to:', configPath);
+    } catch (e) {
+        console.error('Error saving shop config:', e);
+    }
+
+    // Update UI
+    document.getElementById('shopName').textContent = shopConfig.shopName;
+    generateShopQR();
+
+    showNotification('Shop details updated successfully');
+    closeSettings();
+}
+
+function generateQRInSettings() {
+    const canvas = document.getElementById('settingsQRCode');
+    if (!canvas || !shopConfig.shopID) return;
+
+    const qrData = `http://${shopConfig.ip}:${shopConfig.port}/web?shop=${shopConfig.shopID}`;
+    QRCode.toCanvas(canvas, qrData, {
+        width: 220,
+        margin: 2,
+        color: { dark: '#000000', light: '#FFFFFF' }
+    }, (error) => {
+        if (error) console.error('QR generation error:', error);
+    });
+}
+
+function toggleSetting(setting, value) {
+    shopSettings[setting] = value;
+    saveSettings();
+    console.log('Setting updated:', setting, value);
+}
+
+function updateSetting(setting, value) {
+    shopSettings[setting] = parseInt(value);
+    saveSettings();
+    console.log('Setting updated:', setting, value);
+}
+
+function resetSettings() {
+    if (confirm('Reset all settings to defaults?')) {
+        shopSettings = {
+            webClient: true,
+            mobileApp: true,
+            maxFileSize: 100,
+            autoDeleteHours: 0,
+            soundNotifications: true,
+            desktopNotifications: false,
+            requireSession: true,
+            sessionTimeout: 5,
+            blockedIPs: []
+        };
+        saveSettings();
+        showSettings();
+        showNotification('Settings reset to defaults');
+    }
+}
+
+
+
+// Track files by client (for chat UI)
+function addFileToClient(clientId, fileData) {
+    if (typeof clientFiles === 'undefined') {
+        window.clientFiles = new Map();
+    }
+    if (!clientFiles.has(clientId)) {
+        clientFiles.set(clientId, []);
+    }
+    clientFiles.get(clientId).push(fileData);
+
+    // If this client is selected, update the display
+    if (typeof selectedClientId !== 'undefined' && selectedClientId === clientId) {
+        if (typeof displayClientFiles === 'function') {
+            displayClientFiles(clientId);
+            updateClientManagementButtons(clientId);
+        }
+    }
+
+    // Update client list to show file count
+    if (typeof updateClientsListUI === 'function') {
+        updateClientsListUI();
+    }
+}
+
+// Client Management Helpers
+function disconnectSelectedClient() {
+    if (!selectedClientId) return;
+
+    if (confirm(`Are you sure you want to disconnect this client?`)) {
+        activeSessions.delete(selectedClientId);
+        showNotification('Client disconnected');
+        updateFilesList();
+        updateClientManagementButtons(selectedClientId);
+    }
+}
+
+function blockSelectedClient() {
+    if (!selectedClientId) return;
+
+    const session = activeSessions.get(selectedClientId);
+    const clientIP = session ? session.ip : (clientFiles.get(selectedClientId)?.[0]?.ip);
+
+    if (!clientIP) {
+        showNotification('Cannot block: IP unknown');
+        return;
+    }
+
+    if (confirm(`Are you sure you want to block this device (${clientIP})?`)) {
+        if (!shopSettings.blockedIPs.includes(clientIP)) {
+            shopSettings.blockedIPs.push(clientIP);
+            saveSettings();
+        }
+
+        // Also disconnect if online
+        activeSessions.delete(selectedClientId);
+
+        showNotification('Device blocked');
+        updateFilesList();
+        updateClientManagementButtons(selectedClientId);
+    }
+}
+
+function renderBlockedIPs() {
+    const list = document.getElementById('blockedIPsList');
+    if (!list) return;
+
+    if (!shopSettings.blockedIPs || shopSettings.blockedIPs.length === 0) {
+        list.innerHTML = '<li class="blocked-item"><p>No blocked addresses</p></li>';
+        return;
+    }
+
+    list.innerHTML = shopSettings.blockedIPs.map(ip => `
+        <li class="blocked-item">
+            <span class="blocked-ip">${ip}</span>
+            <button class="btn-remove" onclick="unblockIP('${ip}')" title="Unblock">✕</button>
+        </li>
+    `).join('');
+}
+
+function unblockIP(ip) {
+    shopSettings.blockedIPs = shopSettings.blockedIPs.filter(item => item !== ip);
+    saveSettings();
+    renderBlockedIPs();
+    showNotification('Address unblocked');
+
+    // Update management buttons if selected client has this IP
+    if (selectedClientId) {
+        updateClientManagementButtons(selectedClientId);
+    }
+}
+
+function addManualBlock() {
+    const input = document.getElementById('manualBlockIP');
+    if (!input) return;
+
+    const ip = input.value.trim();
+    if (!ip) return;
+
+    // IP validation
+    const ipRegex = /^[0-9a-fA-F:.]+$/;
+    if (!ipRegex.test(ip)) {
+        showNotification('Invalid IP format');
+        return;
+    }
+
+    if (!shopSettings.blockedIPs.includes(ip)) {
+        shopSettings.blockedIPs.push(ip);
+        saveSettings();
+        renderBlockedIPs();
+        input.value = '';
+        showNotification(`IP ${ip} blocked`);
+
+        // Disconnect any active sessions with this IP
+        for (const [id, session] of activeSessions.entries()) {
+            if (session.ip === ip) {
+                activeSessions.delete(id);
+            }
+        }
+        updateFilesList();
+        if (selectedClientId) updateClientManagementButtons(selectedClientId);
+    } else {
+        showNotification('IP is already blocked');
+    }
 }

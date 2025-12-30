@@ -16,9 +16,14 @@
                 <h1>🖨️ PrintShare</h1>
                 <p class="shop-name" id="shopName">Loading...</p>
             </div>
-            <div class="status-indicator">
-                <span class="status-dot"></span>
-                <span id="statusText">Ready to Receive</span>
+            <div class="header-actions">
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span id="statusText">Ready to Receive</span>
+                </div>
+                <button class="btn-icon" onclick="showSettings()" title="Settings">
+                    ⚙️
+                </button>
             </div>
         </header>
 
@@ -46,58 +51,45 @@
                 </div>
             </div>
 
-            <!-- Main Screen (QR Display) -->
+            <!-- Main Screen (Chat-Style Layout) -->
             <div id="mainScreen" class="main-screen">
-                <!-- QR Code Section -->
-                <div class="qr-section">
-                    <h2>📱 Scan to Send Files</h2>
-                    <p class="qr-subtitle">Customers scan this QR code to send printable files</p>
-
-                    <div class="qr-display">
-                        <div class="qr-container">
-                            <canvas id="shopQRCode"></canvas>
-                        </div>
-                        <div class="qr-info">
-                            <div class="info-badge">
-                                <span class="badge-icon">🏪</span>
-                                <span id="displayShopName">-</span>
-                            </div>
-                            <div class="info-badge">
-                                <span class="badge-icon">🌐</span>
-                                <span id="displayShopIP">-</span>
-                            </div>
-                            <div class="info-badge">
-                                <span class="badge-icon">🔑</span>
-                                <span id="displayShopID">-</span>
-                            </div>
+                <!-- Client List Panel (Left) -->
+                <div class="clients-panel">
+                    <div class="panel-header">
+                        <h3>📱 Connected Clients</h3>
+                        <span class="client-count" id="clientCount">0 online</span>
+                    </div>
+                    <div id="clientsList" class="clients-list">
+                        <div class="empty-state">
+                            <div class="empty-icon">🚫</div>
+                            <p>No clients connected</p>
+                            <p class="empty-subtitle">Clients will appear when they scan the QR code</p>
                         </div>
                     </div>
-
-                    <div class="qr-security-notice">
-                        <div class="notice-icon">🔒</div>
-                        <div class="notice-content">
-                            <strong>Secure QR Code</strong>
-                            <p>This QR code is protected and should only be scanned with the XStore mobile app. Scanning with other apps will not work.</p>
-                        </div>
-                    </div>
-
-                    <button class="btn btn-secondary" onclick="showSetup()">
-                        ⚙️ Change Shop Details
-                    </button>
                 </div>
 
-                <!-- Incoming Files Section -->
-                <div class="incoming-section">
-                    <div class="section-header">
-                        <h3>📥 Incoming Files</h3>
-                        <span class="file-count" id="fileCount">0 files</span>
+                <!-- File View Panel (Right) -->
+                <div class="files-panel">
+                    <div class="panel-header">
+                        <div class="selected-client-info">
+                            <h3 id="selectedClientName">Select a client</h3>
+                            <span id="selectedClientMeta" class="client-meta"></span>
+                        </div>
+                        <div class="header-actions">
+                            <span class="file-count" id="fileCount">0 files</span>
+                            <div class="client-management-btns">
+                                <button class="btn btn-outline btn-sm" id="btnDisconnect"
+                                    onclick="disconnectSelectedClient()" title="Disconnect Client">🔌</button>
+                                <button class="btn btn-danger-outline btn-sm" id="btnBlock"
+                                    onclick="blockSelectedClient()" title="Block IP">🚫</button>
+                            </div>
+                        </div>
                     </div>
-
-                    <div id="incomingFiles" class="file-list">
+                    <div id="filesList" class="files-list">
                         <div class="empty-state">
-                            <div class="empty-icon">📭</div>
-                            <p>No files received yet</p>
-                            <p class="empty-subtitle">Files will appear here when customers send them</p>
+                            <div class="empty-icon">📁</div>
+                            <p>No client selected</p>
+                            <p class="empty-subtitle">Select a client from the left to view their files</p>
                         </div>
                     </div>
                 </div>
@@ -139,6 +131,184 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Settings Modal -->
+            <div id="settingsModal" class="modal" style="display: none;">
+                <div class="modal-content settings-modal">
+                    <div class="modal-header">
+                        <h3>⚙️ Settings</h3>
+                        <button class="close-btn" onclick="closeSettings()">✕</button>
+                    </div>
+                    <div class="settings-tabs">
+                        <button class="settings-tab active" onclick="switchTab('qr')">QR Code</button>
+                        <button class="settings-tab" onclick="switchTab('shop')">Shop Details</button>
+                        <button class="settings-tab" onclick="switchTab('general')">General</button>
+                        <button class="settings-tab" onclick="switchTab('features')">Features</button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- QR Code Tab -->
+                        <div id="qrTab" class="settings-tab-content active">
+                            <div class="settings-section qr-settings">
+                                <h4>📱 Scan to Connect</h4>
+                                <div class="qr-display-settings">
+                                    <div class="qr-container-settings">
+                                        <canvas id="settingsQRCode"></canvas>
+                                    </div>
+                                    <div class="qr-info-settings">
+                                        <div class="info-badge">
+                                            <span class="badge-icon">🏪</span>
+                                            <span id="settingsDisplayShopName">-</span>
+                                        </div>
+                                        <div class="info-badge">
+                                            <span class="badge-icon">🌐</span>
+                                            <span id="settingsDisplayShopIP">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="web-url-section-settings">
+                                    <div class="url-label">📱 Web Client URL:</div>
+                                    <div class="url-display">
+                                        <a id="settingsWebClientURL" href="#" target="_blank"
+                                            class="web-url">Loading...</a>
+                                        <button class="btn-copy" onclick="copyWebURL()" title="Copy URL">📋</button>
+                                    </div>
+                                    <p class="url-help">Scan QR or share URL for customers to send files</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- General Tab -->
+                        <div id="generalTab" class="settings-tab-content active">
+                            <div class="settings-section">
+                                <h4>📁 File Settings</h4>
+                                <div class="setting-item">
+                                    <div class="setting-info">
+                                        <strong>Maximum File Size</strong>
+                                        <p>Maximum size per file (MB)</p>
+                                    </div>
+                                    <input type="number" id="maxFileSize" class="setting-input" value="100" min="1"
+                                        max="1000" onchange="updateSetting('maxFileSize', this.value)">
+                                </div>
+                                <div class="setting-item">
+                                    <div class="setting-info">
+                                        <strong>Auto-Delete Files</strong>
+                                        <p>Automatically delete files after (hours, 0 = never)</p>
+                                    </div>
+                                    <input type="number" id="autoDeleteHours" class="setting-input" value="0" min="0"
+                                        max="168" onchange="updateSetting('autoDeleteHours', this.value)">
+                                </div>
+                                <div class="setting-item">
+                                    <div class="setting-info">
+                                        <strong>Session Timeout</strong>
+                                        <p>Disconnect inactive clients after (minutes)</p>
+                                    </div>
+                                    <input type="number" id="sessionTimeout" class="setting-input" value="5" min="1"
+                                        max="60" onchange="updateSetting('sessionTimeout', this.value)">
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <h4>🔔 Notifications</h4>
+                                <div class="setting-item">
+                                    <div class="setting-info">
+                                        <strong>Sound Notifications</strong>
+                                        <p>Play sound when files are received</p>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="soundNotifications" checked
+                                            onchange="toggleSetting('soundNotifications', this.checked)">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="setting-info">
+                                        <strong>Desktop Notifications</strong>
+                                        <p>Show desktop notifications for new files</p>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="desktopNotifications"
+                                            onchange="toggleSetting('desktopNotifications', this.checked)">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <h4>🛡️ Security</h4>
+                                <div class="setting-item">
+                                    <div class="setting-info">
+                                        <strong>Blocked IP Addresses</strong>
+                                        <p>Manage devices that are blocked from connecting</p>
+                                    </div>
+                                    <div class="blocked-ips-container">
+                                        <div class="manual-block-input">
+                                            <input type="text" id="manualBlockIP" placeholder="Enter IP to block..."
+                                                class="setting-input-wide">
+                                            <button class="btn btn-sm" onclick="addManualBlock()">Block</button>
+                                        </div>
+                                        <ul id="blockedIPsList" class="blocked-list">
+                                            <!-- Blocked IPs will appear here -->
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Shop Details Tab -->
+                        <div id="shopTab" class="settings-tab-content">
+                            <div class="settings-section">
+                                <h4>🏪 Shop Information</h4>
+                                <div class="form-group">
+                                    <label>Shop Name</label>
+                                    <input type="text" id="settingsShopName" placeholder="e.g., Quick Print Services" />
+                                </div>
+                                <div class="form-group">
+                                    <label>Location (Optional)</label>
+                                    <input type="text" id="settingsLocation"
+                                        placeholder="e.g., Main Street, Downtown" />
+                                </div>
+                                <button class="btn btn-primary" onclick="saveShopDetails()">Save Changes</button>
+                            </div>
+                        </div>
+
+                        <!-- Features Tab -->
+                        <div id="featuresTab" class="settings-tab-content">
+                            <div class="settings-section">
+                                <h4>🌐 Web Client</h4>
+                                <div class="setting-item">
+                                    <div class="setting-info">
+                                        <strong>Enable Web Client</strong>
+                                        <p>Allow customers to upload files via web browser</p>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="enableWebClient" checked
+                                            onchange="toggleSetting('webClient', this.checked)">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <h4>📱 Mobile App</h4>
+                                <div class="setting-item">
+                                    <div class="setting-info">
+                                        <strong>Enable Mobile App Access</strong>
+                                        <p>Allow mobile app connections (coming soon)</p>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="enableMobileApp" checked disabled>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="resetSettings()">Reset to Defaults</button>
+                            <button class="btn btn-primary" onclick="closeSettings()">Done</button>
+                        </div>
+                    </div>
+                </div>
         </main>
 
         <!-- Footer -->
