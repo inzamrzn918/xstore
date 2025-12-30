@@ -38,8 +38,18 @@ async function connectToShop(shopId) {
     try {
         updateStatus('connecting', 'Connecting...');
 
-        // Fetch shop information
-        const response = await fetch('/info');
+        const response = await fetch('/info', {
+            headers: {
+                'bypass-tunnel-reminder': 'true',
+                'Bypass-Tunnel-Reminder': 'true'
+            }
+        });
+
+        if (response.status === 511) {
+            handleTunnelSetup();
+            return;
+        }
+
         if (!response.ok) throw new Error('Failed to fetch shop info');
 
         shopInfo = await response.json();
@@ -79,6 +89,8 @@ async function startSession() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'bypass-tunnel-reminder': 'true',
+                'Bypass-Tunnel-Reminder': 'true'
             },
             body: JSON.stringify({
                 customerID,
@@ -86,6 +98,11 @@ async function startSession() {
                 deviceName
             })
         });
+
+        if (response.status === 511) {
+            handleTunnelSetup();
+            return;
+        }
 
         if (!response.ok) throw new Error('Session start failed');
 
@@ -110,7 +127,9 @@ function startHeartbeat() {
             const response = await fetch('/session/heartbeat', {
                 method: 'POST',
                 headers: {
-                    'X-Customer-ID': customerID
+                    'X-Customer-ID': customerID,
+                    'bypass-tunnel-reminder': 'true',
+                    'Bypass-Tunnel-Reminder': 'true'
                 }
             });
 
@@ -135,7 +154,9 @@ async function endSession() {
         await fetch('/session/end', {
             method: 'POST',
             headers: {
-                'X-Customer-ID': customerID
+                'X-Customer-ID': customerID,
+                'bypass-tunnel-reminder': 'true',
+                'Bypass-Tunnel-Reminder': 'true'
             }
         });
     } catch (error) {
@@ -470,6 +491,8 @@ async function uploadFile(file, onProgress) {
         xhr.open('POST', '/upload');
         xhr.setRequestHeader('X-Customer-ID', customerID);
         xhr.setRequestHeader('X-Session-Key', sessionKey);
+        xhr.setRequestHeader('bypass-tunnel-reminder', 'true');
+        xhr.setRequestHeader('Bypass-Tunnel-Reminder', 'true');
         xhr.send(formData);
     });
 }
@@ -495,9 +518,26 @@ function resetUpload() {
     clearFiles();
     document.getElementById('successMessage').style.display = 'none';
     document.getElementById('errorMessage').style.display = 'none';
+    document.getElementById('tunnelSetupMessage').style.display = 'none';
     document.getElementById('progressSection').style.display = 'none';
     document.querySelector('.upload-section').style.display = 'block';
     updateStatus('connected', 'Connected');
+}
+
+function handleTunnelSetup() {
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.querySelector('.upload-section').style.display = 'none';
+    document.getElementById('errorMessage').style.display = 'none';
+    document.getElementById('successMessage').style.display = 'none';
+
+    // Update link to root URL without /web part
+    const setupBtn = document.getElementById('tunnelSetupBtn');
+    if (setupBtn) {
+        setupBtn.href = '/';
+    }
+
+    document.getElementById('tunnelSetupMessage').style.display = 'block';
+    updateStatus('error', 'Authentication Required');
 }
 
 // ===========================

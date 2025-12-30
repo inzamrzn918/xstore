@@ -289,6 +289,34 @@
                             </div>
 
                             <div class="settings-section">
+                                <h4>☁️ Public Access (Beta)</h4>
+                                <div class="setting-item">
+                                    <div class="setting-info">
+                                        <strong>Enable Public Access</strong>
+                                        <p>Allow clients on different networks (WiFi/Data) to connect</p>
+                                        <div id="publicModeStatus" class="status-mini">Disconnected</div>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="enablePublicAccess"
+                                            onchange="togglePublicAccess(this.checked)">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item"
+                                    style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+                                    <div class="setting-info">
+                                        <strong>Ngrok Authtoken</strong>
+                                        <p>Required. <a href="#"
+                                                onclick="require('electron').shell.openExternal('https://dashboard.ngrok.com/get-started/your-authtoken')">Get
+                                                token</a></p>
+                                    </div>
+                                    <input type="password" id="ngrokAuthToken" class="setting-input"
+                                        style="width: 220px;" placeholder="Paste token here..."
+                                        onchange="updateSetting('ngrokAuthToken', this.value)">
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
                                 <h4>📱 Mobile App</h4>
                                 <div class="setting-item">
                                     <div class="setting-info">
@@ -328,6 +356,13 @@
                 </div>
             </div>
         </footer>
+    </div>
+
+    <!-- Update Notification -->
+    <div id="updateNotification" class="notification hidden">
+        <p id="updateMessage">Checking for updates...</p>
+        <button id="restartButton" class="hidden" onclick="restartApp()">Restart to Update</button>
+        <button class="close-btn" onclick="closeUpdateNotification()">✕</button>
     </div>
 
     <script src="renderer.js"></script>

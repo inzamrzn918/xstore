@@ -2,6 +2,12 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { autoUpdater } = require('electron-updater');
+const log = require('electron-log');
+
+// Configure logging
+log.transports.file.level = 'info';
+autoUpdater.logger = log;
 
 let mainWindow;
 let photoEditorWindow = null;
@@ -28,7 +34,47 @@ function createWindow() {
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
+
+    // Check for updates once window is ready
+    mainWindow.once('ready-to-show', () => {
+        autoUpdater.checkForUpdatesAndNotify();
+    });
 }
+
+// Auto Updater Events
+autoUpdater.on('checking-for-update', () => {
+    if (mainWindow) mainWindow.webContents.send('update_message', 'Checking for updates...');
+});
+
+autoUpdater.on('update-available', (info) => {
+    if (mainWindow) mainWindow.webContents.send('update_message', 'Update available.');
+    if (mainWindow) mainWindow.webContents.send('update_available');
+});
+
+autoUpdater.on('update-not-available', (info) => {
+    if (mainWindow) mainWindow.webContents.send('update_message', 'Update not available.');
+});
+
+autoUpdater.on('error', (err) => {
+    if (mainWindow) mainWindow.webContents.send('update_message', 'Error in auto-updater. ' + err);
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+    let log_message = "Download speed: " + progressObj.bytesPerSecond;
+    log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
+    log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
+    if (mainWindow) mainWindow.webContents.send('update_message', log_message);
+    if (mainWindow) mainWindow.webContents.send('download_progress', progressObj.percent);
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+    if (mainWindow) mainWindow.webContents.send('update_message', 'Update downloaded');
+    if (mainWindow) mainWindow.webContents.send('update_downloaded');
+});
+
+ipcMain.on('restart_app', () => {
+    autoUpdater.quitAndInstall();
+});
 
 app.whenReady().then(createWindow);
 

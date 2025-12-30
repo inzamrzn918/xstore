@@ -6,6 +6,7 @@ const os = require('os');
 const QRCode = require('qrcode');
 const Busboy = require('busboy');
 const CryptoJS = require('crypto-js');
+const ngrok = require('ngrok');
 
 // Shop Configuration
 let shopConfig = {
@@ -25,11 +26,15 @@ let shopSettings = {
     desktopNotifications: false,
     requireSession: true,
     sessionTimeout: 5,
-    blockedIPs: []
+    blockedIPs: [],
+    publicAccess: false,
+    ngrokAuthToken: ''
 };
 
 // State
 let httpServer = null;
+let publicTunnel = null;
+let publicURL = null;
 let receivedFiles = [];
 let currentPreviewFile = null;
 let activeSessions = new Map(); // customerID -> { sessionKey, lastSeen, files: [] }
@@ -187,7 +192,8 @@ function showMainScreen() {
 
 // Generate shop QR code
 function generateShopQR() {
-    const webUrl = `http://${shopConfig.ip}:${shopConfig.port}/web?shop=${shopConfig.shopID}`;
+    const baseUrl = publicURL || `http://${shopConfig.ip}:${shopConfig.port}`;
+    const webUrl = `${baseUrl}/web?shop=${shopConfig.shopID}`;
 
     // In new UI, QR is only in settings modal
     const canvas = document.getElementById('settingsQRCode');
@@ -263,6 +269,17 @@ function startHTTPServer() {
         // Session start - customer connects
         if (req.method === 'POST' && req.url === '/session/start') {
             handleSessionStart(req, res);
+            return;
+        }
+
+        // Web Client status (discovery for public mode)
+        if (req.method === 'GET' && req.url === '/status') {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+                status: 'online',
+                publicMode: !!publicURL,
+                shopName: shopConfig.shopName
+            }));
             return;
         }
 
@@ -363,6 +380,109 @@ function startHTTPServer() {
             startHTTPServer();
         }
     });
+
+    // Start public tunnel if enabled
+    if (shopSettings.publicAccess) {
+        startPublicTunnel();
+    }
+}
+
+// Public Tunnel Management
+
+
+async function startPublicTunnel() {
+    try {
+        // Disconnect any existing sessions
+        await ngrok.disconnect();
+        await ngrok.kill();
+
+        updateStatus('Opening Public Access...', '#f59e0b');
+        console.log('Attempting to connect to ngrok...');
+
+        // Check for token
+        if (!shopSettings.ngrokAuthToken) {
+            throw new Error('Ngrok Authtoken is missing. Please enter it in Settings.');
+        }
+
+        // Connect via ngrok (passing options object)
+        console.log('Connecting to ngrok on port ' + shopConfig.port + '...');
+
+        const options = {
+            proto: 'http',
+            addr: shopConfig.port,
+            authtoken: shopSettings.ngrokAuthToken,
+            onStatusChange: status => console.log('Ngrok status:', status),
+            onLogEvent: data => console.log('Ngrok log:', data)
+        };
+
+        const connectPromise = ngrok.connect(options);
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Ngrok connection timed out (20s). Check your internet or firewall.')), 20000)
+        );
+
+        const url = await Promise.race([connectPromise, timeoutPromise]);
+
+        if (!url) throw new Error('Ngrok failed to return a URL');
+
+        publicURL = url;
+        // Mock publicTunnel object for compatibility with existing checks
+        publicTunnel = { url: publicURL, close: async () => await ngrok.disconnect() };
+
+        console.log('✓ Public Access URL:', publicURL);
+
+        updateStatus('Public Access Online', '#8b5cf6');
+        generateShopQR();
+
+        // Update UI if in settings
+        const statusEl = document.getElementById('publicModeStatus');
+        if (statusEl) {
+            statusEl.textContent = 'Connected: ' + publicURL;
+            statusEl.className = 'status-mini status-success';
+        }
+
+        // Notification
+        showNotification('Public Access Enabled! Connection secure via ngrok.');
+        if (document.getElementById('publicAccessWarning')) {
+            document.getElementById('publicAccessWarning').style.display = 'block';
+        }
+
+    } catch (error) {
+        const errorMsg = error.message || String(error);
+        console.error('❌ Ngrok failed:', errorMsg);
+        showNotification('Public Access failed: ' + errorMsg);
+        updateStatus('Public Access Failed', '#ef4444');
+        publicURL = null;
+        publicTunnel = null;
+
+        // Update UI to show failed
+        const statusEl = document.getElementById('publicModeStatus');
+        if (statusEl) {
+            statusEl.textContent = 'Failed to connect';
+            statusEl.className = 'status-mini';
+        }
+    }
+}
+
+async function stopPublicTunnel() {
+    try {
+        await ngrok.disconnect();
+        await ngrok.kill();
+    } catch (err) {
+        console.error('Error stopping ngrok:', err);
+    }
+    publicTunnel = null;
+    showNotification('Public Access Disabled');
+}
+
+async function togglePublicAccess(enabled) {
+    shopSettings.publicAccess = enabled;
+    saveSettings();
+
+    if (enabled) {
+        await startPublicTunnel();
+    } else {
+        await stopPublicTunnel();
+    }
 }
 
 // Handle file upload from mobile
@@ -783,7 +903,7 @@ function loadReceivedFiles() {
                                 totalChunks: chunks.length,
                                 originalSize: file.size,
                                 fileName: file.name,
-                                encrypted: file.encrypted
+                                encrypted: encrypted
                             });
 
                             console.log(`✅ Restored ${chunks.length} chunks for ${file.name}`);
@@ -1015,6 +1135,8 @@ function previewFile(fileId) {
     document.getElementById('previewSize').textContent = formatFileSize(file.size);
     document.getElementById('previewType').textContent = path.extname(file.name).toUpperCase();
     document.getElementById('previewFrom').textContent = file.from;
+    document.getElementById('publicModeStatus').textContent = publicTunnel ? 'Connected' : 'Disconnected';
+    document.getElementById('publicAccessWarning').style.display = publicTunnel ? 'block' : 'none';
 
     // Show preview based on file type
     const previewContent = document.getElementById('previewContent');
@@ -1350,6 +1472,48 @@ function getLocalIP() {
     return 'localhost';
 }
 
+async function fetchPublicIP() {
+    try {
+        // Try loca.lt first as it's the official source for their tunnel password
+        const response = await fetch('https://loca.lt/mytunnelpassword');
+        if (!response.ok) throw new Error('Official IP check failed');
+
+        const ip = (await response.text()).trim();
+
+        // Basic IP validation
+        if (!/^[0-9a-fA-F:.]+$/.test(ip)) {
+            throw new Error('Received invalid IP format from official source');
+        }
+
+        if (document.getElementById('publicIPValue')) {
+            document.getElementById('publicIPValue').textContent = ip;
+        }
+        return ip;
+    } catch (officialError) {
+        console.warn('Official IP source failed, trying ipify fallback:', officialError.message);
+        try {
+            const response = await fetch('https://api.ipify.org?format=json');
+            if (!response.ok) throw new Error('Network response was not ok');
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Expected JSON but received ' + (contentType || 'unknown'));
+            }
+            const data = await response.json();
+            const ip = data.ip;
+            if (document.getElementById('publicIPValue')) {
+                document.getElementById('publicIPValue').textContent = ip;
+            }
+            return ip;
+        } catch (error) {
+            console.error('Error fetching public IP:', error.message);
+            if (document.getElementById('publicIPValue')) {
+                document.getElementById('publicIPValue').textContent = 'Unavailable';
+            }
+            return null;
+        }
+    }
+}
+
 function generateShopID() {
     return 'SHOP-' + Math.random().toString(36).substring(2, 10).toUpperCase();
 }
@@ -1527,6 +1691,33 @@ function showSettings() {
         document.getElementById('desktopNotifications').checked = shopSettings.desktopNotifications;
     if (document.getElementById('sessionTimeout'))
         document.getElementById('sessionTimeout').value = shopSettings.sessionTimeout || 5;
+    if (document.getElementById('enablePublicAccess'))
+        document.getElementById('enablePublicAccess').checked = shopSettings.publicAccess;
+    if (document.getElementById('ngrokAuthToken'))
+        document.getElementById('ngrokAuthToken').value = shopSettings.ngrokAuthToken || '';
+
+    // Update public access status display
+    const statusEl = document.getElementById('publicModeStatus');
+    if (statusEl) {
+        if (publicURL) {
+            statusEl.textContent = 'Connected: ' + publicURL;
+            statusEl.className = 'status-mini status-success';
+        } else if (shopSettings.publicAccess) {
+            statusEl.textContent = 'Connecting...';
+            statusEl.className = 'status-mini status-warning';
+        } else {
+            statusEl.textContent = 'Disconnected';
+            statusEl.className = 'status-mini';
+        }
+    }
+
+
+
+    // Update public access warning visibility
+    const warningEl = document.getElementById('publicAccessWarning');
+    if (warningEl) {
+        warningEl.style.display = publicURL ? 'block' : 'none';
+    }
 
     // Load blocked IPs list
     renderBlockedIPs();
@@ -1614,7 +1805,11 @@ function toggleSetting(setting, value) {
 }
 
 function updateSetting(setting, value) {
-    shopSettings[setting] = parseInt(value);
+    if (setting === 'ngrokAuthToken') {
+        shopSettings[setting] = value.trim();
+    } else {
+        shopSettings[setting] = parseInt(value);
+    }
     saveSettings();
     console.log('Setting updated:', setting, value);
 }
@@ -1630,8 +1825,11 @@ function resetSettings() {
             desktopNotifications: false,
             requireSession: true,
             sessionTimeout: 5,
-            blockedIPs: []
+            blockedIPs: [],
+            publicAccess: false,
+            ngrokAuthToken: ''
         };
+        stopPublicTunnel(); // Ensure tunnel is closed on reset
         saveSettings();
         showSettings();
         showNotification('Settings reset to defaults');
@@ -1764,3 +1962,41 @@ function addManualBlock() {
         showNotification('IP is already blocked');
     }
 }
+
+// Auto Update Handler
+const updateNotification = document.getElementById('updateNotification');
+const updateMessage = document.getElementById('updateMessage');
+const restartButton = document.getElementById('restartButton');
+
+ipcRenderer.on('update_available', () => {
+    ipcRenderer.removeAllListeners('update_available');
+    updateMessage.innerText = 'A new update is available. Downloading now...';
+    updateNotification.classList.remove('hidden');
+});
+
+ipcRenderer.on('update_downloaded', () => {
+    ipcRenderer.removeAllListeners('update_downloaded');
+    updateMessage.innerText = 'Update Downloaded. It will be installed on restart. Restart now?';
+    restartButton.classList.remove('hidden');
+    updateNotification.classList.remove('hidden');
+});
+
+ipcRenderer.on('download_progress', (event, progress) => {
+    // Only show progress if already visible/checking
+    // Optional: Add progress bar
+    updateMessage.innerText = 'Downloading update: ' + Math.round(progress) + '%';
+});
+
+ipcRenderer.on('update_message', (event, message) => {
+    // Log internal messages if needed, or show brief status
+    console.log('AutoUpdate:', message);
+});
+
+function closeUpdateNotification() {
+    updateNotification.classList.add('hidden');
+}
+
+function restartApp() {
+    ipcRenderer.send('restart_app');
+}
+

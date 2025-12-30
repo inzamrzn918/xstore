@@ -1426,3 +1426,82 @@ input:disabled+.toggle-slider {
 .btn-remove:hover {
     background: #fef2f2;
 }
+
+/* Update Notification */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 300px;
+    background: white;
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 2000;
+    border-left: 4px solid #6366f1;
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.notification.hidden {
+    display: none;
+}
+
+.notification p {
+    font-size: 14px;
+    color: #1f2937;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.notification button#restartButton {
+    background: #6366f1;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.notification button#restartButton.hidden {
+    display: none;
+}
+
+.notification button#restartButton:hover {
+    background: #4f46e5;
+}
+
+.notification .close-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 16px;
+    width: auto;
+    height: auto;
+}
+
+.notification .close-btn:hover {
+    color: #1f2937;
+    background: transparent;
+}

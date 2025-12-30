@@ -112,6 +112,22 @@
                 <p id="errorText">Please try again.</p>
                 <button id="retryBtn" class="btn btn-primary">Try Again</button>
             </div>
+
+            <!-- Tunnel Setup Message -->
+            <div id="tunnelSetupMessage" class="message-card info-card" style="display: none;">
+                <div class="message-icon">🔒</div>
+                <h3>Secure Connection Required</h3>
+                <p>Click the button below, then click <strong>"Click to Continue"</strong> on the next page to establish
+                    a secure connection to the shop.</p>
+                <p style="margin-top: 10px; font-size: 0.9em; color: #6b7280;">
+                    <em>Note: If you are asked for a "Tunnel Password", it is the <strong>Public IP</strong> of the shop
+                        server (visible on the shop's screen or settings).</em>
+                </p>
+                <a id="tunnelSetupBtn" href="/" class="btn btn-primary" style="margin-top: 25px;">Start Secure
+                    Connection</a>
+                <p class="hint-text">After clicking "Continue" on the next page, you will be redirected back here
+                    automatically.</p>
+            </div>
         </div>
 
         <!-- Camera Modal -->
