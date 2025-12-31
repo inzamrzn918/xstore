@@ -46,6 +46,13 @@ function loadShopConfig() {
         if (fs.existsSync(configPath)) {
             const savedConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
             Object.assign(shopConfig, savedConfig);
+
+            // Migration: Regenerate if legacy (SHOP-) or missing
+            if (!shopConfig.shopID || shopConfig.shopID.startsWith('SHOP-')) {
+                console.log('[Config] Migrating legacy Shop ID to UUIDv4...');
+                shopConfig.shopID = generateShopID();
+                saveShopConfig(); // Save new ID immediately
+            }
         } else {
             // Initialize default values
             shopConfig.shopName = 'My Print Shop';

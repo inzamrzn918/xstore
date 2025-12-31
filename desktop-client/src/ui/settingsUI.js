@@ -95,6 +95,16 @@ function showSettings() {
             else el.value = shopSettings[key] || (key === 'sessionTimeout' ? 5 : '');
         }
 
+        // Custom Domain Section Visibility
+        const domainSection = document.getElementById('customDomainSection');
+        if (domainSection) {
+            if (shopSettings.useCustomDomain) domainSection.classList.remove('hidden');
+            else domainSection.classList.add('hidden');
+        }
+
+        // Fill domain fields
+        // (Managed via environment now)
+
         // Public Access Status
         const statusEl = document.getElementById('publicModeStatus');
         if (statusEl) {
@@ -184,6 +194,13 @@ function saveShopSetup() {
     if (name) {
         shopConfig.shopName = name;
         shopConfig.location = location || '';
+
+        // Auto-generate UUIDv4 ID if not set
+        if (!shopConfig.shopID) {
+            const { generateShopID } = require('../utils/formatting');
+            shopConfig.shopID = generateShopID();
+        }
+
         require('../services/configService').saveShopConfig();
 
         document.getElementById('setupScreen').style.display = 'none';
@@ -203,19 +220,27 @@ function saveShopDetails() {
     const name = document.getElementById('settingsShopName').value;
     const location = document.getElementById('settingsLocation').value;
 
-    if (name) shopConfig.shopName = name;
-    shopConfig.location = location || '';
+    if (name) {
+        shopConfig.shopName = name;
+        shopConfig.location = location || '';
 
-    require('../services/configService').saveShopConfig();
+        // Auto-generate UUIDv4 ID if not set
+        if (!shopConfig.shopID) {
+            const { generateShopID } = require('../utils/formatting');
+            shopConfig.shopID = generateShopID();
+        }
 
-    // Update UI
-    const shopNameEl = document.getElementById('shopName');
-    if (shopNameEl) shopNameEl.textContent = shopConfig.shopName;
+        require('../services/configService').saveShopConfig();
 
-    closeSettings();
-    showSettings(); // Re-open to refresh or just keep closed? Original code closed it. 
-    // Actually better to just generate QR again if needed.
-    generateQRInSettings();
+        // Update UI
+        const shopNameEl = document.getElementById('shopName');
+        if (shopNameEl) shopNameEl.textContent = shopConfig.shopName;
+
+        closeSettings();
+        // showSettings(); // Re-open to refresh or just keep closed? Original code closed it. 
+        // Actually better to just generate QR again if needed.
+        generateQRInSettings();
+    }
 }
 
 function resetSettings() {
@@ -246,6 +271,11 @@ function resetSettings() {
     }
 }
 
+function printPoster() {
+    const posterUI = require('./posterUI');
+    posterUI.generateAndPrintPoster();
+}
+
 module.exports = {
     switchTab,
     showSettings,
@@ -255,5 +285,6 @@ module.exports = {
     updateWebClientURL,
     generateQRInSettings,
     renderBlockedIPs,
-    resetSettings
+    resetSettings,
+    printPoster
 };

@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { ipcRenderer } = require('electron');
 const path = require('path');
 
@@ -26,15 +27,21 @@ window.onunhandledrejection = (event) => {
 // alert('Renderer Loaded'); // Debugging
 
 // Import Modules
+console.log('[Renderer] Loading appState...');
 const { shopConfig, shopSettings, selectedClientId } = require('./src/state/appState');
+console.log('[Renderer] Loading configService...');
 const { loadShopConfig, loadSettings, saveSettings } = require('./src/services/configService');
+console.log('[Renderer] Loading autoUpdateService...');
 const { initAutoUpdate } = require('./src/services/autoUpdateService');
+console.log('[Renderer] Loading serverService...');
 const { startHTTPServer, generateShopQR, showNotification } = require('./src/services/serverService');
+console.log('[Renderer] Loading storageService...');
 const { loadReceivedFiles } = require('./src/services/storageService');
+console.log('[Renderer] Loading network utility...');
 const { monitorNetworkChanges } = require('./src/utils/network');
 
 // Import UI Modules
-// Import UI Modules
+console.log('[Renderer] Loading UI modules...');
 const {
     switchTab,
     showSettings,
@@ -44,8 +51,11 @@ const {
     saveShopDetails,
     saveShopSetup
 } = require('./src/ui/settingsUI');
+console.log('[Renderer] Loading fileManagerUI...');
 const { updateFilesList, displayClientFiles, updateStats } = require('./src/ui/fileManagerUI');
+console.log('[Renderer] Loading clientManagerUI...');
 const { updateClientsListUI, updateClientManagementButtons } = require('./src/ui/clientManagerUI');
+console.log('[Renderer] All modules loaded successfully');
 
 // --- Global Event Bindings (Expose to Window immediately) ---
 window.switchTab = switchTab;
@@ -60,24 +70,26 @@ window.toggleSetting = (setting, value) => {
     saveSettings();
     console.log('Setting updated:', setting, value);
 
+    if (setting === 'useCustomDomain') {
+        const section = document.getElementById('customDomainSection');
+        if (section) {
+            if (value) section.classList.remove('hidden');
+            else section.classList.add('hidden');
+        }
+        // If public access is already running, we should restart the tunnel to apply changes
+        if (shopSettings.publicAccess) {
+            const { stopPublicTunnel, startPublicTunnel } = require('./src/services/serverService');
+            stopPublicTunnel();
+            setTimeout(() => startPublicTunnel(), 500);
+        }
+    }
+
     if (setting === 'publicAccess') {
         const { startPublicTunnel, stopPublicTunnel } = require('./src/services/serverService');
         const { generateQRInSettings } = require('./src/ui/settingsUI');
 
         if (value) {
-            // Wait for tunnel to connect, then update UI
-            startPublicTunnel().then(() => {
-                // Refresh settings UI after tunnel connects
-                generateQRInSettings();
-                // Update status badge
-                const statusEl = document.getElementById('publicModeStatus');
-                if (statusEl) {
-                    const appStateModule = require('./src/state/appState');
-                    statusEl.textContent = appStateModule.publicURL ? 'Active (Connected)' : 'Active (Connecting...)';
-                }
-            }).catch(err => {
-                console.error('Failed to start tunnel:', err);
-            });
+            startPublicTunnel();
         } else {
             stopPublicTunnel();
             // Refresh settings UI after tunnel stops
@@ -92,12 +104,9 @@ window.toggleSetting = (setting, value) => {
 };
 
 window.updateSetting = (setting, value) => {
-    if (setting === 'publicAccess') {
-        const value = document.getElementById('publicAccessToggle').checked;
-        ipcRenderer.send('update-setting', { key: 'publicAccess', value });
-    }
-    else shopSettings[setting] = parseInt(value);
+    shopSettings[setting] = value;
     saveSettings();
+    console.log('Text setting updated:', setting, value);
 };
 
 window.unblockIP = (ip) => {
@@ -122,6 +131,16 @@ window.acceptFile = () => {
     acceptFile();
 };
 
+window.downloadFile = (fileId) => {
+    const { downloadFile } = require('./src/ui/fileManagerUI');
+    downloadFile(fileId);
+};
+
+window.editImage = (fileId) => {
+    const { editImage } = require('./src/ui/fileManagerUI');
+    editImage(fileId);
+};
+
 window.disconnectSelectedClient = () => {
     const { disconnectSelectedClient } = require('./src/ui/clientManagerUI');
     disconnectSelectedClient();
@@ -135,6 +154,16 @@ window.blockSelectedClient = () => {
 window.addManualBlock = () => {
     const { addManualBlock } = require('./src/ui/clientManagerUI');
     addManualBlock();
+};
+
+window.printFile = (fileId) => {
+    const { printFile } = require('./src/ui/fileManagerUI');
+    printFile(fileId);
+};
+
+window.printPoster = () => {
+    const { printPoster } = require('./src/ui/settingsUI');
+    printPoster();
 };
 
 window.deleteFile = (fileId) => {

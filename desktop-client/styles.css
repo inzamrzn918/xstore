@@ -933,6 +933,29 @@ body {
     border-color: #6366f1;
 }
 
+/* Custom Domain Section */
+.custom-domain-fields {
+    margin-top: 16px;
+    padding: 16px;
+    background: #fdf2f2;
+    /* Light red/alert tint or light indigo? Let's use light indigo */
+    background: #f5f7ff;
+    border-radius: 12px;
+    border: 1px dashed #6366f1;
+    animation: fadeIn 0.3s ease;
+}
+
+.help-text-sm {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 8px;
+    line-height: 1.4;
+}
+
+.center {
+    justify-content: center;
+}
+
 /* Toggle Switch */
 .toggle-switch {
     position: relative;

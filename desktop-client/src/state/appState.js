@@ -28,8 +28,9 @@ let shopSettings = {
     blockedIPs: [],
     publicAccess: false,
     useCustomDomain: false,
-    cloudflareToken: '',
-    customHostname: ''
+    cloudflareToken: process.env.CLOUDFLARE_TOKEN || '',
+    customHostname: process.env.CUSTOM_HOSTNAME || '',
+    masterDomain: process.env.MASTER_DOMAIN || ''
 };
 
 // Server State

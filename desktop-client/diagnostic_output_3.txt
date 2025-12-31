@@ -1,0 +1,39 @@
+
+> XStore-Desktop@1.2.0 start
+> electron .
+
+
+[dotenv@17.2.3] injecting env (2) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[21020:1231/231427.830:ERROR:net\disk_cache\cache_util_win.cc:25] Unable to move the cache: Access is denied. (0x5)
+[21020:1231/231427.830:ERROR:net\disk_cache\cache_util_win.cc:25] Unable to move the cache: Access is denied. (0x5)
+[21020:1231/231427.830:ERROR:net\disk_cache\cache_util_win.cc:25] Unable to move the cache: Access is denied. (0x5)
+[21020:1231/231427.837:ERROR:net\disk_cache\disk_cache.cc:236] Unable to create cache
+[21020:1231/231427.837:ERROR:gpu\ipc\host\gpu_disk_cache.cc:724] Gpu Cache Creation failed: -2
+[21020:1231/231427.837:ERROR:net\disk_cache\disk_cache.cc:236] Unable to create cache
+[21020:1231/231427.837:ERROR:gpu\ipc\host\gpu_disk_cache.cc:724] Gpu Cache Creation failed: -2
+[21020:1231/231427.837:ERROR:net\disk_cache\disk_cache.cc:236] Unable to create cache
+[21020:1231/231427.837:ERROR:gpu\ipc\host\gpu_disk_cache.cc:724] Gpu Cache Creation failed: -2
+[21020:1231/231427.947:WARNING:content\browser\btm\btm_database.cc:128] Failed to initialize the DIPS SQLite database.
+[21020:1231/231428.053:INFO:CONSOLE:142] "[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops", source: C:\Users\inzam\Projects\xstore\desktop-client\node_modules\dotenv\lib\main.js (142)
+[21020:1231/231428.053:INFO:CONSOLE:5] "Renderer process started", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (5)
+[Main] ❤️ Heartbeat received from Renderer
+[21020:1231/231428.055:INFO:CONSOLE:30] "[Renderer] Loading appState...", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (30)
+[21020:1231/231428.055:INFO:CONSOLE:32] "[Renderer] Loading configService...", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (32)
+[21020:1231/231428.059:INFO:CONSOLE:34] "[Renderer] Loading autoUpdateService...", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (34)
+[21020:1231/231428.060:INFO:CONSOLE:36] "[Renderer] Loading serverService...", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (36)
+[21020:1231/231428.131:INFO:CONSOLE:38] "[Renderer] Loading storageService...", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (38)
+[21020:1231/231428.131:INFO:CONSOLE:40] "[Renderer] Loading network utility...", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (40)
+[21020:1231/231428.132:INFO:CONSOLE:44] "[Renderer] Loading UI modules...", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (44)
+[21020:1231/231428.132:INFO:CONSOLE:54] "[Renderer] Loading fileManagerUI...", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (54)
+[21020:1231/231428.133:INFO:CONSOLE:56] "[Renderer] Loading clientManagerUI...", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (56)
+[21020:1231/231428.133:INFO:CONSOLE:58] "[Renderer] All modules loaded successfully", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (58)
+[21020:1231/231428.236:INFO:CONSOLE:201] "PrintShare Shop initialized (Modular)", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (201)
+[21020:1231/231428.269:INFO:CONSOLE:50] "[Server] Port 8888 is already in use.", source: C:\Users\inzam\Projects\xstore\desktop-client\src\services\serverService.js (50)
+[21020:1231/231437.802:INFO:CONSOLE:2] "%cElectron Security Warning (Insecure Content-Security-Policy) font-weight: bold; This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.", source: node:electron/js2c/renderer_init (2)

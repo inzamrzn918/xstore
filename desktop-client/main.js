@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -12,7 +13,8 @@ const logToCrashFile = (msg) => {
     fs.appendFileSync(CRASH_LOG, `[${timestamp}] ${msg}\n`);
 };
 
-// Disable Autofill & DevTools features that cause protocol crashes on some Windows envs
+// Enable renderer logging in terminal
+app.commandLine.appendSwitch('enable-logging');
 app.commandLine.appendSwitch('disable-features', 'Autofill,AutofillAssistant,Passwords');
 app.commandLine.appendSwitch('disable-extensions');
 
@@ -56,6 +58,34 @@ function createWindow() {
     // Check for updates once window is ready
     mainWindow.once('ready-to-show', () => {
         // autoUpdater.checkForUpdatesAndNotify(); // Disabled for stability test
+    });
+
+    // Disable standard reloads (Ctrl+R, F5) to protect transient memory
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+        if (input.control && input.key.toLowerCase() === 'r') {
+            event.preventDefault();
+        }
+        if (input.key === 'F5') {
+            event.preventDefault();
+        }
+    });
+
+    // Protect against accidental close (Safe Exit)
+    mainWindow.on('close', (e) => {
+        if (app.isQuitting) return;
+
+        e.preventDefault();
+        const choice = dialog.showMessageBoxSync(mainWindow, {
+            type: 'question',
+            buttons: ['Yes', 'No'],
+            title: 'Confirm Exit',
+            message: 'Are you sure you want to close XStore? Any active client connections will be dropped.'
+        });
+
+        if (choice === 0) {
+            app.isQuitting = true;
+            app.quit();
+        }
     });
 }
 
@@ -116,6 +146,78 @@ ipcMain.on('renderer-ready', (event) => {
 
 ipcMain.on('log-to-disk', (event, msg) => {
     logToCrashFile(msg);
+});
+
+// PDF Viewer Window
+ipcMain.handle('open-pdf-window', async (event, { pdfUrl, fileName }) => {
+    const pdfWindow = new BrowserWindow({
+        width: 1000,
+        height: 800,
+        title: fileName || 'PDF Viewer',
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            plugins: true
+        },
+        autoHideMenuBar: true
+    });
+
+    // Disable downloads in PDF window
+    pdfWindow.webContents.session.on('will-download', (event, item, webContents) => {
+        event.preventDefault();
+    });
+
+    pdfWindow.loadURL(pdfUrl);
+    return { success: true };
+});
+
+// Image Editor Window (Photoshop 7 Style)
+ipcMain.handle('open-image-editor', async (event, { imageUrl, fileId, fileName }) => {
+    const editorWindow = new BrowserWindow({
+        width: 1400,
+        height: 900,
+        title: `Photo Editor - ${fileName}`,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        },
+        autoHideMenuBar: false
+    });
+
+    editorWindow.loadFile('photo-editor.html');
+
+    editorWindow.webContents.once('did-finish-load', () => {
+        editorWindow.webContents.send('load-image', {
+            imageUrl,
+            fileId,
+            fileName
+        });
+    });
+
+    return { success: true };
+});
+
+// Save edited image
+ipcMain.on('save-edited-image', (event, { fileId, fileName, imageBuffer }) => {
+    const { storeFile } = require('./src/services/storageService');
+    const { receivedFiles } = require('./src/state/appState');
+
+    // Find the original file
+    const fileIndex = receivedFiles.findIndex(f => f.id === fileId);
+    if (fileIndex !== -1) {
+        const originalFile = receivedFiles[fileIndex];
+
+        // Store the edited image
+        storeFile(fileId, fileName, imageBuffer, false, originalFile.customerID);
+
+        // Update file size
+        receivedFiles[fileIndex].size = imageBuffer.length;
+
+        // Notify renderer to refresh the file list
+        if (mainWindow) {
+            mainWindow.webContents.send('file-updated', fileId);
+        }
+    }
 });
 
 // IPC Handlers for P2P mode

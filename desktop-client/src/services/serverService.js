@@ -43,6 +43,18 @@ function startHTTPServer() {
 
     try {
         httpServer = http.createServer(handleRequest);
+
+        // Handle PORT IN USE errors gracefully
+        httpServer.on('error', (e) => {
+            if (e.code === 'EADDRINUSE') {
+                console.error(`[Server] Port ${shopConfig.port} is already in use.`);
+                updateStatus(`Error: Port ${shopConfig.port} in use`, '#ef4444');
+                alert(`Error: Port ${shopConfig.port} is already in use by another application. Please close other instances of XStore or free up the port and restart.`);
+            } else {
+                console.error('[Server] Fatal Error:', e);
+            }
+        });
+
         httpServer.listen(shopConfig.port, '0.0.0.0', () => {
             console.log(`[Server] Listening at http://${shopConfig.ip}:${shopConfig.port}`);
             updateStatus('Ready to Receive');
@@ -243,12 +255,48 @@ async function startPublicTunnel() {
     isTunnelling = true;
 
     try {
-        const port = shopConfig.port || 8888;
+        const port = shopSettings.serverPort || 8888;
         updateStatus('⏳ Starting Cloudflare Tunnel...', '#3b82f6');
-        console.log('[Tunnel] Spawning cloudflared for port ' + port);
-
         const { bin } = require('cloudflared');
         const { spawn } = require('child_process');
+
+        // Check for Professional Access / Named Tunnel
+        if (shopSettings.useCustomDomain && shopSettings.cloudflareToken) {
+            console.log('[Tunnel] Starting Permanent Tunnel with Token...');
+
+            // Generate hostname: Custom Hostname Override (Env) OR (ShopID + Master Domain)
+            let hostname = process.env.CUSTOM_HOSTNAME;
+            if (!hostname && shopSettings.masterDomain) {
+                hostname = `${shopConfig.shopID}.${shopSettings.masterDomain}`;
+            }
+
+            // If custom hostname is provided or generated, use it for QR immediately
+            if (hostname) {
+                appStateModule.publicURL = hostname.startsWith('http')
+                    ? hostname
+                    : `https://${hostname}`;
+                srv_updateAllQRDisplays();
+            }
+
+            tunnelProcess = spawn(bin, ['tunnel', 'run', '--token', shopSettings.cloudflareToken]);
+
+            tunnelProcess.stdout.on('data', (data) => console.log(`[Tunnel] ${data}`));
+            tunnelProcess.stderr.on('data', (data) => {
+                const msg = data.toString();
+                console.log(`[Tunnel Log] ${msg}`);
+            });
+
+            tunnelProcess.on('close', (code) => {
+                console.log(`[Tunnel] Process closed with code ${code}`);
+                isTunnelling = false;
+            });
+
+            updateStatus('Public Access Active', '#10b981');
+            return;
+        }
+
+        // Ephemeral Tunnel (Default)
+        console.log('[Tunnel] Spawning cloudflared for port ' + port);
 
         // Spawn cloudflared tunnel directly from its bin path
         tunnelProcess = spawn(bin, ['tunnel', '--url', `http://localhost:${port}`]);

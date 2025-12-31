@@ -1,7 +1,8 @@
+const crypto = require('crypto');
 const path = require('path');
 
 function generateShopID() {
-    return 'SHOP-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+    return crypto.randomUUID();
 }
 
 function getFileIcon(fileName) {

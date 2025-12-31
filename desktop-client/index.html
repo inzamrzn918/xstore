@@ -182,8 +182,25 @@
                             </div>
                         </div>
 
+                        <!-- Shop Details Tab -->
+                        <div id="shopTab" class="settings-tab-content">
+                            <div class="settings-section">
+                                <h4>🏪 Shop Information</h4>
+                                <div class="form-group">
+                                    <label>Shop Name</label>
+                                    <input type="text" id="settingsShopName" placeholder="e.g., Quick Print Services" />
+                                </div>
+                                <div class="form-group">
+                                    <label>Location (Optional)</label>
+                                    <input type="text" id="settingsLocation"
+                                        placeholder="e.g., Main Street, Downtown" />
+                                </div>
+                                <button class="btn btn-primary" onclick="saveShopDetails()">Save Changes</button>
+                            </div>
+                        </div>
+
                         <!-- General Tab -->
-                        <div id="generalTab" class="settings-tab-content active">
+                        <div id="generalTab" class="settings-tab-content">
                             <div class="settings-section">
                                 <h4>📁 File Settings</h4>
                                 <div class="setting-item">
@@ -259,23 +276,6 @@
                             </div>
                         </div>
 
-                        <!-- Shop Details Tab -->
-                        <div id="shopTab" class="settings-tab-content">
-                            <div class="settings-section">
-                                <h4>🏪 Shop Information</h4>
-                                <div class="form-group">
-                                    <label>Shop Name</label>
-                                    <input type="text" id="settingsShopName" placeholder="e.g., Quick Print Services" />
-                                </div>
-                                <div class="form-group">
-                                    <label>Location (Optional)</label>
-                                    <input type="text" id="settingsLocation"
-                                        placeholder="e.g., Main Street, Downtown" />
-                                </div>
-                                <button class="btn btn-primary" onclick="saveShopDetails()">Save Changes</button>
-                            </div>
-                        </div>
-
                         <!-- Features Tab -->
                         <div id="featuresTab" class="settings-tab-content">
                             <div class="settings-section">
@@ -295,57 +295,53 @@
 
                             <div class="settings-section">
                                 <h4>☁️ Public Access (Beta)</h4>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="enablePublicAccess"
-                                        onchange="toggleSetting('publicAccess', this.checked)">
-                                    <span class="toggle-slider"></span>
-                                </label>
+                                <div class="setting-item">
+                                    <div class="setting-info">
+                                        <strong>Enable Public Access</strong>
+                                        <p>Allow clients on different networks (WiFi/Data) to connect</p>
+                                        <div id="publicModeStatus" class="status-mini">Disconnected</div>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="enablePublicAccess"
+                                            onchange="toggleSetting('publicAccess', this.checked)">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+
+                                <div class="setting-item">
+                                    <div class="setting-info">
+                                        <strong>Professional Access</strong>
+                                        <p>Use your own domain or an owner-provided domain</p>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="useCustomDomain"
+                                            onchange="toggleSetting('useCustomDomain', this.checked)">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+
+                                <div id="customDomainSection" class="custom-domain-fields hidden">
+                                    <p class="help-text-sm" style="margin-top: 10px;">
+                                        Professional features like custom domains are managed centrally by the app
+                                        owner.
+                                    </p>
+                                </div>
                             </div>
 
-                            <div class="setting-item">
-                                <div class="setting-info">
-                                    <strong>Professional Access</strong>
-                                    <p>Use your own domain (e.g., shop.yourdomain.com)</p>
+                            <div class="settings-section">
+                                <h4>📱 Mobile App</h4>
+                                <div class="setting-item">
+                                    <div class="setting-info">
+                                        <strong>Enable Mobile App Access</strong>
+                                        <p>Allow mobile app connections (coming soon)</p>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="enableMobileApp" checked disabled>
+                                        <span class="toggle-slider"></span>
+                                    </label>
                                 </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="useCustomDomain"
-                                        onchange="toggleSetting('useCustomDomain', this.checked)">
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-
-                            <div id="customDomainSection" class="custom-domain-fields hidden">
-                                <div class="form-group">
-                                    <label>Cloudflare Tunnel Token</label>
-                                    <input type="password" id="cloudflareToken" class="setting-input-wide"
-                                        placeholder="Paste your Cloudflare Tunnel Token here"
-                                        onchange="updateSetting('cloudflareToken', this.value)">
-                                </div>
-                                <div class="form-group">
-                                    <label>Custom Hostname / Subdomain</label>
-                                    <input type="text" id="customHostname" class="setting-input-wide"
-                                        placeholder="e.g., print.myshop.com"
-                                        onchange="updateSetting('customHostname', this.value)">
-                                </div>
-                                <p class="help-text-sm">Setup a "Cloudflare Tunnel" on your dashboard and paste the
-                                    token here for a permanent URL.</p>
-                            </div>
-                        </div>
-
-                        <div class="settings-section">
-                            <h4>📱 Mobile App</h4>
-                            <div class="setting-item">
-                                <div class="setting-info">
-                                    <strong>Enable Mobile App Access</strong>
-                                    <p>Allow mobile app connections (coming soon)</p>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="enableMobileApp" checked disabled>
-                                    <span class="toggle-slider"></span>
-                                </label>
                             </div>
                         </div>
-
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-secondary" onclick="resetSettings()">Reset to Defaults</button>
@@ -353,25 +349,27 @@
                     </div>
                 </div>
             </div>
-        </main>
+    </div>
+    </div>
+    </main>
 
-        <!-- Footer -->
-        <footer class="footer">
-            <div class="footer-stats">
-                <div class="stat">
-                    <span class="stat-value" id="totalFiles">0</span>
-                    <span class="stat-label">Total Files</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-value" id="totalSize">0 MB</span>
-                    <span class="stat-label">Total Size</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-value" id="todayFiles">0</span>
-                    <span class="stat-label">Today</span>
-                </div>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-stats">
+            <div class="stat">
+                <span class="stat-value" id="totalFiles">0</span>
+                <span class="stat-label">Total Files</span>
             </div>
-        </footer>
+            <div class="stat">
+                <span class="stat-value" id="totalSize">0 MB</span>
+                <span class="stat-label">Total Size</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="todayFiles">0</span>
+                <span class="stat-label">Today</span>
+            </div>
+        </div>
+    </footer>
     </div>
 
     <!-- Update Notification -->

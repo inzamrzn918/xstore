@@ -8,9 +8,7 @@ const { memoryStorage, chunkIndex, shopSettings, receivedFiles } = require('../s
 // Let's implement load/save helpers for files here and use them.
 
 function getStorageDir() {
-    // Determine storage path
-    const configDir = process.env.APPDATA ? path.join(process.env.APPDATA, 'PrintShare') : path.join(require('os').homedir(), '.printshare');
-    return configDir;
+    return process.env.APPDATA ? path.join(process.env.APPDATA, 'PrintShare') : path.join(require('os').homedir(), '.printshare');
 }
 
 function storeFile(fileId, fileName, buffer, encrypted, customerID) {
@@ -31,7 +29,7 @@ function storeFile(fileId, fileName, buffer, encrypted, customerID) {
         }
 
         chunkIndex.set(fileId, {
-            chunks: chunks, // Storing buffers in memory for now, could be improved to disk
+            chunks: chunks,
             totalChunks: chunks.length,
             originalSize: buffer.length
         });
@@ -57,41 +55,15 @@ function deleteStoredFile(fileId) {
 }
 
 function loadReceivedFiles() {
-    try {
-        const configDir = getStorageDir();
-        const filesPath = path.join(configDir, 'files.json');
-        if (fs.existsSync(filesPath)) {
-            const savedFiles = JSON.parse(fs.readFileSync(filesPath, 'utf8'));
-            // Filter out old files if auto-delete is enabled? 
-            // Better to load all and let cleanup logic handle it.
-            // We need to update the receivedFiles array in state.
-            // Direct assignment or splice
-            const { receivedFiles: globalFiles } = require('../state/appState');
-            globalFiles.length = 0; // Clear
-            globalFiles.push(...savedFiles);
-            // Note: In appState.js we exported the array reference but reassigning the variable 'receivedFiles = val' only works if we use the setter.
-            // Since we imported the array object via destructuring (if it was exported directly), mutating it is fine. 
-            // But appState exports `receivedFiles` getter/setter.
-            // Wait, destructured export `const { receivedFiles } = ...` gets the value at that moment if it's a primitive or reference. 
-            // Since it's an array, it's a reference. Mutating it via push is fine.
-            // But if appState reassigns `receivedFiles = []`, our reference is stale.
-            // For now, assume appState initializes it and we mutate.
-        }
-    } catch (error) {
-        console.error('Error loading files:', error);
-    }
+    // No-op: Persistence disabled
+}
+
+function saveSessions() {
+    // No-op: Persistence disabled
 }
 
 function saveReceivedFilesLogic() {
-    try {
-        const configDir = getStorageDir();
-        const filesPath = path.join(configDir, 'files.json');
-        const { receivedFiles } = require('../state/appState');
-        // Persist only metadata, not content (content is in memory map)
-        fs.writeFileSync(filesPath, JSON.stringify(receivedFiles, null, 2));
-    } catch (error) {
-        console.error('Error saving files list:', error);
-    }
+    // No-op: Data persistence disabled as per user request
 }
 
 function getMemoryStats() {
@@ -116,5 +88,6 @@ module.exports = {
     deleteStoredFile,
     loadReceivedFiles,
     saveReceivedFiles: saveReceivedFilesLogic,
+    saveSessions,
     getMemoryStats
 };
