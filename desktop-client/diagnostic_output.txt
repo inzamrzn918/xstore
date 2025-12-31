@@ -1,0 +1,18 @@
+
+> XStore-Desktop@1.2.0 start
+> electron .
+
+
+[dotenv@17.2.3] injecting env (2) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[8464:1231/230032.027:ERROR:net\disk_cache\cache_util_win.cc:25] Unable to move the cache: Access is denied. (0x5)
+[8464:1231/230032.027:ERROR:net\disk_cache\cache_util_win.cc:25] Unable to move the cache: Access is denied. (0x5)
+[8464:1231/230032.027:ERROR:net\disk_cache\cache_util_win.cc:25] Unable to move the cache: Access is denied. (0x5)
+[8464:1231/230032.029:ERROR:net\disk_cache\disk_cache.cc:236] Unable to create cache
+[8464:1231/230032.029:ERROR:gpu\ipc\host\gpu_disk_cache.cc:724] Gpu Cache Creation failed: -2
+[8464:1231/230032.029:ERROR:net\disk_cache\disk_cache.cc:236] Unable to create cache
+[8464:1231/230032.029:ERROR:gpu\ipc\host\gpu_disk_cache.cc:724] Gpu Cache Creation failed: -2
+[8464:1231/230032.029:ERROR:net\disk_cache\disk_cache.cc:236] Unable to create cache
+[8464:1231/230032.029:ERROR:gpu\ipc\host\gpu_disk_cache.cc:724] Gpu Cache Creation failed: -2
+[Main] ❤️ Heartbeat received from Renderer
+[8464:1231/230234.130:ERROR:CONSOLE:1] "Request Autofill.enable failed. {"code":-32601,"message":"'Autofill.enable' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+[8464:1231/230234.130:ERROR:CONSOLE:1] "Request Autofill.setAddresses failed. {"code":-32601,"message":"'Autofill.setAddresses' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)

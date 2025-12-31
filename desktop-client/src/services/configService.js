@@ -1,79 +1,92 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { shopConfig, shopSettings } = require('../state/appState');
+const { getLocalIP } = require('../utils/network');
+const { generateShopID } = require('../utils/formatting');
 
-/**
- * Configuration Service - Handles shop configuration persistence
- */
+function getConfigDir() {
+    return process.env.APPDATA ? path.join(process.env.APPDATA, 'PrintShare') : path.join(os.homedir(), '.printshare');
+}
 
-class ConfigService {
-    constructor() {
-        this.configPath = this.getConfigPath();
-        this.config = {
-            shopName: '',
-            location: '',
-            shopID: '',
-            ip: '',
-            port: 8888
-        };
-    }
-
-    getConfigPath() {
-        try {
-            const appDataPath = process.env.APPDATA ||
-                (process.platform === 'darwin' ?
-                    process.env.HOME + '/Library/Application Support' :
-                    '/var/local');
-            const configDir = path.join(appDataPath, 'PrintShare');
-
-            if (!fs.existsSync(configDir)) {
-                fs.mkdirSync(configDir, { recursive: true });
-            }
-
-            return path.join(configDir, 'config.json');
-        } catch (e) {
-            const fallbackDir = path.join(os.homedir(), '.printshare');
-            if (!fs.existsSync(fallbackDir)) {
-                fs.mkdirSync(fallbackDir, { recursive: true });
-            }
-            return path.join(fallbackDir, 'config.json');
+function loadSettings() {
+    try {
+        const configDir = getConfigDir();
+        const settingsPath = path.join(configDir, 'settings.json');
+        if (fs.existsSync(settingsPath)) {
+            const savedSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+            Object.assign(shopSettings, savedSettings);
         }
-    }
-
-    load() {
-        try {
-            if (fs.existsSync(this.configPath)) {
-                const data = fs.readFileSync(this.configPath, 'utf8');
-                this.config = { ...this.config, ...JSON.parse(data) };
-                console.log('Config loaded from:', this.configPath);
-                return this.config;
-            }
-        } catch (error) {
-            console.error('Error loading config:', error);
-        }
-        return null;
-    }
-
-    save(config) {
-        try {
-            this.config = { ...this.config, ...config };
-            fs.writeFileSync(this.configPath, JSON.stringify(this.config, null, 2));
-            console.log('Config saved to:', this.configPath);
-            return true;
-        } catch (error) {
-            console.error('Error saving config:', error);
-            return false;
-        }
-    }
-
-    get() {
-        return this.config;
-    }
-
-    update(updates) {
-        this.config = { ...this.config, ...updates };
-        return this.save(this.config);
+    } catch (error) {
+        console.error('Error loading settings:', error);
     }
 }
 
-module.exports = new ConfigService();
+function saveSettings() {
+    try {
+        const configDir = getConfigDir();
+        if (!fs.existsSync(configDir)) {
+            fs.mkdirSync(configDir, { recursive: true });
+        }
+        const settingsPath = path.join(configDir, 'settings.json');
+        fs.writeFileSync(settingsPath, JSON.stringify(shopSettings, null, 2));
+    } catch (error) {
+        console.error('Error saving settings:', error);
+    }
+}
+
+function loadShopConfig() {
+    try {
+        const configDir = getConfigDir();
+        if (!fs.existsSync(configDir)) {
+            fs.mkdirSync(configDir, { recursive: true });
+        }
+        const configPath = path.join(configDir, 'shop-config.json');
+
+        if (fs.existsSync(configPath)) {
+            const savedConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            Object.assign(shopConfig, savedConfig);
+
+            // Migration: Regenerate if legacy (SHOP-) or missing
+            if (!shopConfig.shopID || shopConfig.shopID.startsWith('SHOP-')) {
+                console.log('[Config] Migrating legacy Shop ID to UUIDv4...');
+                shopConfig.shopID = generateShopID();
+                saveShopConfig(); // Save new ID immediately
+            }
+        } else {
+            // Initialize default values
+            shopConfig.shopName = 'My Print Shop';
+            shopConfig.location = 'Unknown Location';
+            shopConfig.shopID = generateShopID();
+            shopConfig.port = 8888;
+        }
+
+        // Always update IP to current machine IP
+        shopConfig.ip = getLocalIP();
+
+    } catch (error) {
+        console.error('Error loading shop config:', error);
+        shopConfig.shopName = 'My Print Shop';
+        shopConfig.shopID = generateShopID();
+        shopConfig.ip = getLocalIP();
+    }
+}
+
+function saveShopConfig() {
+    try {
+        const configDir = getConfigDir();
+        const configPath = path.join(configDir, 'shop-config.json');
+        fs.writeFileSync(configPath, JSON.stringify(shopConfig, null, 2));
+        console.log('Shop details saved to:', configPath);
+    } catch (e) {
+        console.error('Error saving shop config:', e);
+    }
+}
+
+module.exports = {
+    loadSettings,
+    saveSettings,
+    loadShopConfig,
+    saveShopConfig,
+    getConfigDir
+};

@@ -174,11 +174,33 @@
                                     </div>
                                     <p class="url-help">Scan QR or share URL for customers to send files</p>
                                 </div>
+                                <div class="button-group center">
+                                    <button class="btn btn-secondary btn-sm" onclick="printPoster()">
+                                        🖨️ Print Shop Poster
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Shop Details Tab -->
+                        <div id="shopTab" class="settings-tab-content">
+                            <div class="settings-section">
+                                <h4>🏪 Shop Information</h4>
+                                <div class="form-group">
+                                    <label>Shop Name</label>
+                                    <input type="text" id="settingsShopName" placeholder="e.g., Quick Print Services" />
+                                </div>
+                                <div class="form-group">
+                                    <label>Location (Optional)</label>
+                                    <input type="text" id="settingsLocation"
+                                        placeholder="e.g., Main Street, Downtown" />
+                                </div>
+                                <button class="btn btn-primary" onclick="saveShopDetails()">Save Changes</button>
                             </div>
                         </div>
 
                         <!-- General Tab -->
-                        <div id="generalTab" class="settings-tab-content active">
+                        <div id="generalTab" class="settings-tab-content">
                             <div class="settings-section">
                                 <h4>📁 File Settings</h4>
                                 <div class="setting-item">
@@ -254,23 +276,6 @@
                             </div>
                         </div>
 
-                        <!-- Shop Details Tab -->
-                        <div id="shopTab" class="settings-tab-content">
-                            <div class="settings-section">
-                                <h4>🏪 Shop Information</h4>
-                                <div class="form-group">
-                                    <label>Shop Name</label>
-                                    <input type="text" id="settingsShopName" placeholder="e.g., Quick Print Services" />
-                                </div>
-                                <div class="form-group">
-                                    <label>Location (Optional)</label>
-                                    <input type="text" id="settingsLocation"
-                                        placeholder="e.g., Main Street, Downtown" />
-                                </div>
-                                <button class="btn btn-primary" onclick="saveShopDetails()">Save Changes</button>
-                            </div>
-                        </div>
-
                         <!-- Features Tab -->
                         <div id="featuresTab" class="settings-tab-content">
                             <div class="settings-section">
@@ -298,21 +303,28 @@
                                     </div>
                                     <label class="toggle-switch">
                                         <input type="checkbox" id="enablePublicAccess"
-                                            onchange="togglePublicAccess(this.checked)">
+                                            onchange="toggleSetting('publicAccess', this.checked)">
                                         <span class="toggle-slider"></span>
                                     </label>
                                 </div>
-                                <div class="setting-item"
-                                    style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+
+                                <div class="setting-item">
                                     <div class="setting-info">
-                                        <strong>Ngrok Authtoken</strong>
-                                        <p>Required. <a href="#"
-                                                onclick="require('electron').shell.openExternal('https://dashboard.ngrok.com/get-started/your-authtoken')">Get
-                                                token</a></p>
+                                        <strong>Professional Access</strong>
+                                        <p>Use your own domain or an owner-provided domain</p>
                                     </div>
-                                    <input type="password" id="ngrokAuthToken" class="setting-input"
-                                        style="width: 220px;" placeholder="Paste token here..."
-                                        onchange="updateSetting('ngrokAuthToken', this.value)">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="useCustomDomain"
+                                            onchange="toggleSetting('useCustomDomain', this.checked)">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+
+                                <div id="customDomainSection" class="custom-domain-fields hidden">
+                                    <p class="help-text-sm" style="margin-top: 10px;">
+                                        Professional features like custom domains are managed centrally by the app
+                                        owner.
+                                    </p>
                                 </div>
                             </div>
 
@@ -329,33 +341,35 @@
                                     </label>
                                 </div>
                             </div>
-
-                        </div>
-                        <div class="modal-footer">
-                            <button class="btn btn-secondary" onclick="resetSettings()">Reset to Defaults</button>
-                            <button class="btn btn-primary" onclick="closeSettings()">Done</button>
                         </div>
                     </div>
-                </div>
-        </main>
-
-        <!-- Footer -->
-        <footer class="footer">
-            <div class="footer-stats">
-                <div class="stat">
-                    <span class="stat-value" id="totalFiles">0</span>
-                    <span class="stat-label">Total Files</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-value" id="totalSize">0 MB</span>
-                    <span class="stat-label">Total Size</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-value" id="todayFiles">0</span>
-                    <span class="stat-label">Today</span>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="resetSettings()">Reset to Defaults</button>
+                        <button class="btn btn-primary" onclick="closeSettings()">Done</button>
+                    </div>
                 </div>
             </div>
-        </footer>
+    </div>
+    </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-stats">
+            <div class="stat">
+                <span class="stat-value" id="totalFiles">0</span>
+                <span class="stat-label">Total Files</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="totalSize">0 MB</span>
+                <span class="stat-label">Total Size</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="todayFiles">0</span>
+                <span class="stat-label">Today</span>
+            </div>
+        </div>
+    </footer>
     </div>
 
     <!-- Update Notification -->

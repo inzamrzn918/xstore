@@ -1,0 +1,40 @@
+
+> XStore-Desktop@1.2.0 start
+> electron .
+
+
+[dotenv@17.2.3] injecting env (2) from .env -- tip: ΓÜÖ∩╕Å  specify custom .env file path with { path: '/custom/path/.env' }
+[23636:1231/230309.691:ERROR:net\disk_cache\cache_util_win.cc:25] Unable to move the cache: Access is denied. (0x5)
+[23636:1231/230309.692:ERROR:net\disk_cache\cache_util_win.cc:25] Unable to move the cache: Access is denied. (0x5)
+[23636:1231/230309.692:ERROR:net\disk_cache\cache_util_win.cc:25] Unable to move the cache: Access is denied. (0x5)
+[23636:1231/230309.697:ERROR:net\disk_cache\disk_cache.cc:236] Unable to create cache
+[23636:1231/230309.697:ERROR:gpu\ipc\host\gpu_disk_cache.cc:724] Gpu Cache Creation failed: -2
+[23636:1231/230309.697:ERROR:net\disk_cache\disk_cache.cc:236] Unable to create cache
+[23636:1231/230309.697:ERROR:gpu\ipc\host\gpu_disk_cache.cc:724] Gpu Cache Creation failed: -2
+[23636:1231/230309.697:ERROR:net\disk_cache\disk_cache.cc:236] Unable to create cache
+[23636:1231/230309.697:ERROR:gpu\ipc\host\gpu_disk_cache.cc:724] Gpu Cache Creation failed: -2
+[23636:1231/230309.846:WARNING:content\browser\btm\btm_database.cc:128] Failed to initialize the DIPS SQLite database.
+[23636:1231/230310.107:INFO:CONSOLE:142] "[dotenv@17.2.3] injecting env (0) from .env -- tip: ≡ƒöä add secrets lifecycle management: https://dotenvx.com/ops", source: C:\Users\inzam\Projects\xstore\desktop-client\node_modules\dotenv\lib\main.js (142)
+[23636:1231/230310.107:INFO:CONSOLE:5] "Renderer process started", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (5)
+[Main] Γ¥ñ∩╕Å Heartbeat received from Renderer
+[23636:1231/230310.108:INFO:CONSOLE:30] "[Renderer] Loading appState...", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (30)
+[23636:1231/230310.108:INFO:CONSOLE:32] "[Renderer] Loading configService...", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (32)
+[23636:1231/230310.112:INFO:CONSOLE:34] "[Renderer] Loading autoUpdateService...", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (34)
+[23636:1231/230310.112:INFO:CONSOLE:36] "[Renderer] Loading serverService...", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (36)
+[23636:1231/230310.184:INFO:CONSOLE:38] "[Renderer] Loading storageService...", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (38)
+[23636:1231/230310.186:INFO:CONSOLE:40] "[Renderer] Loading network utility...", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (40)
+[23636:1231/230310.186:INFO:CONSOLE:44] "[Renderer] Loading UI modules...", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (44)
+[23636:1231/230310.190:INFO:CONSOLE:54] "[Renderer] Loading fileManagerUI...", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (54)
+[23636:1231/230310.190:INFO:CONSOLE:56] "[Renderer] Loading clientManagerUI...", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (56)
+[23636:1231/230310.190:INFO:CONSOLE:58] "[Renderer] All modules loaded successfully", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (58)
+[23636:1231/230310.193:INFO:CONSOLE:196] "PrintShare Shop initialized (Modular)", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (196)
+[23636:1231/230310.223:INFO:CONSOLE:18] "[Renderer Error] Uncaught Error: listen EADDRINUSE: address already in use 0.0.0.0:8888 at node:events:497:7 Error: listen EADDRINUSE: address already in use 0.0.0.0:8888", source: file:///C:/Users/inzam/Projects/xstore/desktop-client/renderer.js (18)
+[23636:1231/230310.224:INFO:CONSOLE:497] "Uncaught Error: listen EADDRINUSE: address already in use 0.0.0.0:8888", source: node:events (497)
+[23636:1231/230310.226:INFO:CONSOLE:2] "%cElectron Security Warning (Insecure Content-Security-Policy) font-weight: bold; This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.", source: node:electron/js2c/renderer_init (2)
