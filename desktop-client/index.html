@@ -174,6 +174,11 @@
                                     </div>
                                     <p class="url-help">Scan QR or share URL for customers to send files</p>
                                 </div>
+                                <div class="button-group center">
+                                    <button class="btn btn-secondary btn-sm" onclick="printPoster()">
+                                        🖨️ Print Shop Poster
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -290,53 +295,64 @@
 
                             <div class="settings-section">
                                 <h4>☁️ Public Access (Beta)</h4>
-                                <div class="setting-item">
-                                    <div class="setting-info">
-                                        <strong>Enable Public Access</strong>
-                                        <p>Allow clients on different networks (WiFi/Data) to connect</p>
-                                        <div id="publicModeStatus" class="status-mini">Disconnected</div>
-                                    </div>
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" id="enablePublicAccess"
-                                            onchange="togglePublicAccess(this.checked)">
-                                        <span class="toggle-slider"></span>
-                                    </label>
-                                </div>
-                                <div class="setting-item"
-                                    style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
-                                    <div class="setting-info">
-                                        <strong>Ngrok Authtoken</strong>
-                                        <p>Required. <a href="#"
-                                                onclick="require('electron').shell.openExternal('https://dashboard.ngrok.com/get-started/your-authtoken')">Get
-                                                token</a></p>
-                                    </div>
-                                    <input type="password" id="ngrokAuthToken" class="setting-input"
-                                        style="width: 220px;" placeholder="Paste token here..."
-                                        onchange="updateSetting('ngrokAuthToken', this.value)">
-                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="enablePublicAccess"
+                                        onchange="toggleSetting('publicAccess', this.checked)">
+                                    <span class="toggle-slider"></span>
+                                </label>
                             </div>
 
-                            <div class="settings-section">
-                                <h4>📱 Mobile App</h4>
-                                <div class="setting-item">
-                                    <div class="setting-info">
-                                        <strong>Enable Mobile App Access</strong>
-                                        <p>Allow mobile app connections (coming soon)</p>
-                                    </div>
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" id="enableMobileApp" checked disabled>
-                                        <span class="toggle-slider"></span>
-                                    </label>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <strong>Professional Access</strong>
+                                    <p>Use your own domain (e.g., shop.yourdomain.com)</p>
                                 </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="useCustomDomain"
+                                        onchange="toggleSetting('useCustomDomain', this.checked)">
+                                    <span class="toggle-slider"></span>
+                                </label>
                             </div>
 
+                            <div id="customDomainSection" class="custom-domain-fields hidden">
+                                <div class="form-group">
+                                    <label>Cloudflare Tunnel Token</label>
+                                    <input type="password" id="cloudflareToken" class="setting-input-wide"
+                                        placeholder="Paste your Cloudflare Tunnel Token here"
+                                        onchange="updateSetting('cloudflareToken', this.value)">
+                                </div>
+                                <div class="form-group">
+                                    <label>Custom Hostname / Subdomain</label>
+                                    <input type="text" id="customHostname" class="setting-input-wide"
+                                        placeholder="e.g., print.myshop.com"
+                                        onchange="updateSetting('customHostname', this.value)">
+                                </div>
+                                <p class="help-text-sm">Setup a "Cloudflare Tunnel" on your dashboard and paste the
+                                    token here for a permanent URL.</p>
+                            </div>
                         </div>
-                        <div class="modal-footer">
-                            <button class="btn btn-secondary" onclick="resetSettings()">Reset to Defaults</button>
-                            <button class="btn btn-primary" onclick="closeSettings()">Done</button>
+
+                        <div class="settings-section">
+                            <h4>📱 Mobile App</h4>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <strong>Enable Mobile App Access</strong>
+                                    <p>Allow mobile app connections (coming soon)</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="enableMobileApp" checked disabled>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
                         </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="resetSettings()">Reset to Defaults</button>
+                        <button class="btn btn-primary" onclick="closeSettings()">Done</button>
                     </div>
                 </div>
+            </div>
         </main>
 
         <!-- Footer -->

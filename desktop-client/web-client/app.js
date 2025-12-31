@@ -79,8 +79,13 @@ async function connectToShop(shopId) {
 }
 
 async function startSession() {
-    // Generate customer ID and session key
-    customerID = 'WEB-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    // Persist customer ID to avoid duplicates on refresh
+    customerID = localStorage.getItem('printshare_customer_id');
+    if (!customerID) {
+        customerID = 'WEB-' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('printshare_customer_id', customerID);
+    }
+
     sessionKey = generateSessionKey();
     const deviceName = getDeviceName();
 
@@ -95,7 +100,8 @@ async function startSession() {
             body: JSON.stringify({
                 customerID,
                 sessionKey,
-                deviceName
+                deviceName,
+                deviceInfo: deviceName // Fallback for name sync
             })
         });
 
@@ -466,6 +472,11 @@ async function uploadFile(file, onProgress) {
     return new Promise((resolve, reject) => {
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('customerID', customerID);
+        formData.append('senderName', 'Web Client');
+        formData.append('deviceInfo', getDeviceName());
+        formData.append('fileName', file.name);
+        formData.append('fileType', file.type);
 
         const xhr = new XMLHttpRequest();
 

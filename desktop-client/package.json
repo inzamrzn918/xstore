@@ -25,7 +25,8 @@
     "win": {
       "target": [
         "nsis"
-      ]
+      ],
+      "icon": "icon.png"
     },
     "nsis": {
       "oneClick": false,
@@ -39,17 +40,18 @@
         "owner": "inzamrzn918",
         "repo": "xstore"
       }
-    ]
+    ],
+    "icon": "icon.png"
   },
   "dependencies": {
     "axios": "^1.13.2",
     "busboy": "^1.6.0",
     "canvas": "^3.2.0",
+    "cloudflared": "^0.7.1",
     "crypto-js": "^4.2.0",
     "electron-log": "^5.4.3",
     "electron-updater": "^6.6.2",
     "jsqr": "^1.4.0",
-    "ngrok": "^4.3.3",
     "qrcode": "^1.5.4",
     "ws": "^8.18.3"
   },

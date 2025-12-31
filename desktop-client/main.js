@@ -5,17 +5,35 @@ const os = require('os');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
 
-// Configure logging
-log.transports.file.level = 'info';
-autoUpdater.logger = log;
+// Ultra-Persistent File Logger for main-process crashes
+const CRASH_LOG = path.join(__dirname, 'crash.log');
+const logToCrashFile = (msg) => {
+    const timestamp = new Date().toISOString();
+    fs.appendFileSync(CRASH_LOG, `[${timestamp}] ${msg}\n`);
+};
+
+// Disable Autofill & DevTools features that cause protocol crashes on some Windows envs
+app.commandLine.appendSwitch('disable-features', 'Autofill,AutofillAssistant,Passwords');
+app.commandLine.appendSwitch('disable-extensions');
+
+// Catch every possible exit source
+process.on('uncaughtException', (error) => {
+    console.error(' [Main Process] Uncaught Exception:', error);
+    logToCrashFile(`CRASH: Uncaught Exception: ${error.stack || error}`);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error(' [Main Process] Unhandled Rejection:', reason);
+    logToCrashFile(`CRASH: Unhandled Rejection: ${reason}`);
+});
 
 let mainWindow;
 let photoEditorWindow = null;
-
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1200,
         height: 800,
+        icon: path.join(__dirname, 'icon.png'),
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
@@ -37,7 +55,7 @@ function createWindow() {
 
     // Check for updates once window is ready
     mainWindow.once('ready-to-show', () => {
-        autoUpdater.checkForUpdatesAndNotify();
+        // autoUpdater.checkForUpdatesAndNotify(); // Disabled for stability test
     });
 }
 
@@ -88,6 +106,16 @@ app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
     }
+});
+
+// Diagnostics Heartbeat
+ipcMain.on('renderer-ready', (event) => {
+    console.log('[Main] ❤️ Heartbeat received from Renderer');
+    logToCrashFile('HEARTBEAT: Renderer Ready');
+});
+
+ipcMain.on('log-to-disk', (event, msg) => {
+    logToCrashFile(msg);
 });
 
 // IPC Handlers for P2P mode
